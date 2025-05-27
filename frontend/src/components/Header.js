@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Plus, Home, Table } from 'lucide-react';
+import { BookOpen, Plus, Home, Table, Tag } from 'lucide-react';
 
 const Header = () => {
   return (
@@ -18,6 +18,10 @@ const Header = () => {
           <Link to="/summary">
             <Table size={16} style={{ display: 'inline', marginRight: '6px' }} />
             まとめ
+          </Link>
+          <Link to="/tags">
+            <Tag size={16} style={{ display: 'inline', marginRight: '6px' }} />
+            タグ管理
           </Link>
           <Link to="/page/new">
             <Plus size={16} style={{ display: 'inline', marginRight: '6px' }} />

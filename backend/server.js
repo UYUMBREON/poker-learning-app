@@ -169,13 +169,74 @@ app.get('/api/tags', async (req, res) => {
 app.post('/api/tags', async (req, res) => {
   try {
     const { name, color } = req.body;
+    
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'タグ名は必須です' });
+    }
+    
     const result = await pool.query(
       'INSERT INTO tags (name, color) VALUES ($1, $2) RETURNING *',
-      [name, color || '#3B82F6']
+      [name.trim(), color || '#3B82F6']
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error('タグ作成エラー:', err);
+    if (err.code === '23505') { // PostgreSQL unique violation
+      res.status(400).json({ error: 'そのタグ名は既に存在します' });
+    } else {
+      res.status(500).json({ error: 'サーバーエラー' });
+    }
+  }
+});
+
+// タグ更新
+app.put('/api/tags/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, color } = req.body;
+    
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'タグ名は必須です' });
+    }
+    
+    const result = await pool.query(
+      'UPDATE tags SET name = $1, color = $2 WHERE id = $3 RETURNING *',
+      [name.trim(), color || '#3B82F6', id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'タグが見つかりません' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('タグ更新エラー:', err);
+    if (err.code === '23505') { // PostgreSQL unique violation
+      res.status(400).json({ error: 'そのタグ名は既に存在します' });
+    } else {
+      res.status(500).json({ error: 'サーバーエラー' });
+    }
+  }
+});
+
+// タグ削除
+app.delete('/api/tags/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // まず関連するpage_tagsを削除（ON DELETE CASCADEで自動削除されるが、明示的に行う）
+    await pool.query('DELETE FROM page_tags WHERE tag_id = $1', [id]);
+    
+    // タグを削除
+    const result = await pool.query('DELETE FROM tags WHERE id = $1 RETURNING *', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'タグが見つかりません' });
+    }
+    
+    res.json({ message: 'タグが削除されました', deleted_tag: result.rows[0] });
+  } catch (err) {
+    console.error('タグ削除エラー:', err);
     res.status(500).json({ error: 'サーバーエラー' });
   }
 });
