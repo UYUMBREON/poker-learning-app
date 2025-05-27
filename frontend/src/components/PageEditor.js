@@ -1,64 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Save, Trash2, GitBranch, FileText, Tag } from 'lucide-react';
-import axios from 'axios';
+import { usePage, usePages, useTags } from '../hooks/useApi';
+import { usePageForm } from '../hooks/useForm';
+import LoadingSpinner from './common/LoadingSpinner';
+import ErrorMessage from './common/ErrorMessage';
+import Button from './common/Button';
 import TreeEditor from './TreeEditor';
+import TagSelector from './TagSelector';
 
 const PageEditor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isNewPage = !id;
-
-  const [page, setPage] = useState({
-    title: '',
-    content: '',
-    tree_data: { nodes: [], edges: [] },
-    tags: []
-  });
-  const [availableTags, setAvailableTags] = useState([]);
-  const [selectedTags, setSelectedTags] = useState([]);
-  const [loading, setLoading] = useState(false);
+  
+  // 新規ページの場合はAPIを呼ばない
+  const { page, loading: pageLoading, error: pageError } = usePage(isNewPage ? null : id);
+  const { createPage, updatePage, deletePage } = usePages();
+  const { tags, loading: tagsLoading } = useTags();
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
 
+  const form = usePageForm(page);
+
+  // ページデータが読み込まれたらフォームを更新（新規ページの場合は実行しない）
   useEffect(() => {
-    fetchTags();
-    if (!isNewPage) {
-      fetchPage();
+    if (page && !isNewPage) {
+      form.setValue('title', page.title);
+      form.setValue('content', page.content || '');
+      form.setValue('tree_data', page.tree_data || { nodes: [], edges: [] });
+      form.setValue('tags', page.tags?.map(tag => tag.id) || []);
     }
-  }, [id, isNewPage]);
-
-  const fetchPage = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`/api/pages/${id}`);
-      const pageData = response.data;
-      setPage({
-        title: pageData.title,
-        content: pageData.content || '',
-        tree_data: pageData.tree_data || { nodes: [], edges: [] },
-        tags: pageData.tags || []
-      });
-      setSelectedTags(pageData.tags ? pageData.tags.map(tag => tag.id) : []);
-    } catch (err) {
-      setError('ページの取得に失敗しました');
-      console.error('Error fetching page:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchTags = async () => {
-    try {
-      const response = await axios.get('/api/tags');
-      setAvailableTags(response.data);
-    } catch (err) {
-      console.error('Error fetching tags:', err);
-    }
-  };
+  }, [page, isNewPage]);
 
   const handleSave = async () => {
-    if (!page.title.trim()) {
+    if (!form.validate()) {
       alert('ページタイトルを入力してください');
       return;
     }
@@ -66,22 +41,21 @@ const PageEditor = () => {
     try {
       setSaving(true);
       const pageData = {
-        title: page.title,
-        content: page.content,
-        tree_data: page.tree_data,
-        tags: selectedTags
+        title: form.values.title,
+        content: form.values.content,
+        tree_data: form.values.tree_data,
+        tags: form.values.tags
       };
 
       if (isNewPage) {
-        const response = await axios.post('/api/pages', pageData);
-        navigate(`/page/${response.data.id}`);
+        const newPage = await createPage(pageData);
+        navigate(`/page/${newPage.id}`);
       } else {
-        await axios.put(`/api/pages/${id}`, pageData);
+        await updatePage(id, pageData);
         alert('保存しました！');
       }
-    } catch (err) {
-      alert('保存に失敗しました');
-      console.error('Error saving page:', err);
+    } catch (error) {
+      alert(error.message);
     } finally {
       setSaving(false);
     }
@@ -93,125 +67,138 @@ const PageEditor = () => {
     }
 
     try {
-      await axios.delete(`/api/pages/${id}`);
+      await deletePage(id);
       navigate('/');
-    } catch (err) {
-      alert('削除に失敗しました');
-      console.error('Error deleting page:', err);
+    } catch (error) {
+      alert(error.message);
     }
   };
 
-  const handleTitleChange = (e) => {
-    setPage(prev => ({ ...prev, title: e.target.value }));
-  };
-
-  const handleContentChange = (e) => {
-    setPage(prev => ({ ...prev, content: e.target.value }));
-  };
-
-  const handleTreeDataChange = (newTreeData) => {
-    setPage(prev => ({ ...prev, tree_data: newTreeData }));
-  };
-
-  const handleTagToggle = (tagId) => {
-    setSelectedTags(prev => 
-      prev.includes(tagId) 
-        ? prev.filter(id => id !== tagId)
-        : [...prev, tagId]
-    );
-  };
+  // ローディング状態の判定を修正
+  const loading = (!isNewPage && pageLoading) || tagsLoading;
 
   if (loading) {
-    return <div className="loading">読み込み中...</div>;
+    return <LoadingSpinner message="ページを読み込んでいます..." />;
   }
 
-  if (error) {
-    return <div className="error">{error}</div>;
+  // 新規ページの場合はpageErrorをチェックしない
+  if (!isNewPage && pageError) {
+    return <ErrorMessage message={pageError} />;
   }
 
   return (
     <div className="page-editor">
-      <div className="editor-header">
-        <h2>{isNewPage ? '新しいページ' : 'ページ編集'}</h2>
-        <div className="editor-actions">
-          <button 
-            className="save-button" 
-            onClick={handleSave}
-            disabled={saving}
-          >
-            <Save size={16} />
-            {saving ? '保存中...' : '保存'}
-          </button>
-          {!isNewPage && (
-            <button 
-              className="save-button delete-button" 
-              onClick={handleDelete}
-            >
-              <Trash2 size={16} />
-              削除
-            </button>
-          )}
-        </div>
-      </div>
+      <EditorHeader 
+        isNewPage={isNewPage}
+        saving={saving}
+        onSave={handleSave}
+        onDelete={!isNewPage ? handleDelete : undefined}
+      />
 
-      <input
-        type="text"
-        className="title-input"
-        placeholder="ページタイトルを入力してください"
-        value={page.title}
-        onChange={handleTitleChange}
+      <TitleInput 
+        value={form.values.title}
+        onChange={(value) => form.setValue('title', value)}
+        error={form.touched.title && form.errors.title}
       />
 
       <div className="editor-sections">
-        <div className="tree-section">
-          <h3 className="section-title">
-            <GitBranch size={20} />
-            樹形図エディター
-          </h3>
-          <TreeEditor 
-            treeData={page.tree_data}
-            onChange={handleTreeDataChange}
-          />
-        </div>
-
-        <div className="content-section">
-          <h3 className="section-title">
-            <FileText size={20} />
-            内容
-          </h3>
-          <textarea
-            className="content-textarea"
-            placeholder="ページの内容を入力してください..."
-            value={page.content}
-            onChange={handleContentChange}
-          />
-        </div>
+        <TreeSection 
+          treeData={form.values.tree_data}
+          onChange={form.updateTreeData}
+        />
+        <ContentSection 
+          content={form.values.content}
+          onChange={(value) => form.setValue('content', value)}
+        />
       </div>
 
-      <div className="tags-section">
-        <h3 className="section-title">
-          <Tag size={20} />
-          タグ
-        </h3>
-        <div className="tag-selector">
-          {availableTags.map(tag => (
-            <button
-              key={tag.id}
-              className={`tag-option ${selectedTags.includes(tag.id) ? 'selected' : ''}`}
-              onClick={() => handleTagToggle(tag.id)}
-              style={{
-                backgroundColor: selectedTags.includes(tag.id) ? tag.color : 'white',
-                borderColor: tag.color,
-                color: selectedTags.includes(tag.id) ? 'white' : tag.color
-              }}
-            >
-              {tag.name}
-            </button>
-          ))}
-        </div>
-      </div>
+      <TagsSection 
+        tags={tags}
+        selectedTags={form.values.tags}
+        onToggleTag={form.toggleTag}
+      />
     </div>
   );
 };
+
+const EditorHeader = ({ isNewPage, saving, onSave, onDelete }) => (
+  <div className="editor-header">
+    <h2>{isNewPage ? '新しいページ' : 'ページ編集'}</h2>
+    <div className="editor-actions">
+      <Button
+        variant="primary"
+        icon={Save}
+        loading={saving}
+        onClick={onSave}
+      >
+        {saving ? '保存中...' : '保存'}
+      </Button>
+      {onDelete && (
+        <Button
+          variant="danger"
+          icon={Trash2}
+          onClick={onDelete}
+        >
+          削除
+        </Button>
+      )}
+    </div>
+  </div>
+);
+
+const TitleInput = ({ value, onChange, error }) => (
+  <div className="title-input-container">
+    <input
+      type="text"
+      className="title-input"
+      placeholder="ページタイトルを入力してください"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
+    {error && <span className="error-text">{error}</span>}
+  </div>
+);
+
+const TreeSection = ({ treeData, onChange }) => (
+  <div className="tree-section">
+    <h3 className="section-title">
+      <GitBranch size={20} />
+      樹形図エディター
+    </h3>
+    <TreeEditor 
+      treeData={treeData}
+      onChange={onChange}
+    />
+  </div>
+);
+
+const ContentSection = ({ content, onChange }) => (
+  <div className="content-section">
+    <h3 className="section-title">
+      <FileText size={20} />
+      内容
+    </h3>
+    <textarea
+      className="content-textarea"
+      placeholder="ページの内容を入力してください..."
+      value={content}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  </div>
+);
+
+const TagsSection = ({ tags, selectedTags, onToggleTag }) => (
+  <div className="tags-section">
+    <h3 className="section-title">
+      <Tag size={20} />
+      タグ
+    </h3>
+    <TagSelector 
+      tags={tags}
+      selectedTags={selectedTags}
+      onToggle={onToggleTag}
+    />
+  </div>
+);
 
 export default PageEditor;
