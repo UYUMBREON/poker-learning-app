@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, X, BookOpen, Filter, Table } from 'lucide-react';
 import axios from 'axios';
@@ -12,6 +12,26 @@ const PageSummary = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const filterPages = useCallback(() => {
+    let filtered = pages;
+
+    // タグでフィルタ
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter(page => 
+        page.tags && page.tags.some(tag => selectedTags.includes(tag.id))
+      );
+    }
+
+    // タイトルで検索
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(page =>
+        page.title.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredPages(filtered);
+  }, [pages, selectedTags, searchTerm]);
+
   useEffect(() => {
     fetchPages();
     fetchTags();
@@ -19,7 +39,7 @@ const PageSummary = () => {
 
   useEffect(() => {
     filterPages();
-  }, [pages, selectedTags, searchTerm]);
+  }, [filterPages]);
 
   const fetchPages = async () => {
     try {
@@ -41,26 +61,6 @@ const PageSummary = () => {
     } catch (err) {
       console.error('Error fetching tags:', err);
     }
-  };
-
-  const filterPages = () => {
-    let filtered = pages;
-
-    // タグでフィルタ
-    if (selectedTags.length > 0) {
-      filtered = filtered.filter(page => 
-        page.tags && page.tags.some(tag => selectedTags.includes(tag.id))
-      );
-    }
-
-    // タイトルで検索
-    if (searchTerm.trim()) {
-      filtered = filtered.filter(page =>
-        page.title.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    setFilteredPages(filtered);
   };
 
   const handleTagToggle = (tagId) => {
