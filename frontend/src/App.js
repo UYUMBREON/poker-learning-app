@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import PageList from './components/PageList';
 import PageEditor from './components/PageEditor';
+import PageSummary from './components/PageSummary';
 import Header from './components/Header';
 import './App.css';
 
@@ -13,6 +14,7 @@ function App() {
         <main className="main-content">
           <Routes>
             <Route path="/" element={<PageList />} />
+            <Route path="/summary" element={<PageSummary />} />
             <Route path="/page/new" element={<PageEditor />} />
             <Route path="/page/:id" element={<PageEditor />} />
           </Routes>
