@@ -46,7 +46,9 @@ INSERT INTO tags (name, color) VALUES
     ('数学', '#EF4444'),
     ('プログラミング', '#10B981'),
     ('英語', '#8B5CF6'),
-    ('物理', '#F59E0B');
+    ('物理', '#F59E0B'),
+    ('歴史', '#EC4899'),
+    ('化学', '#06B6D4');
 
 INSERT INTO pages (title, content, tree_data) VALUES 
     ('はじめての学習ページ', 

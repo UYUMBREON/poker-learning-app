@@ -1,89 +1,118 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Clock, BookOpen } from 'lucide-react';
-import axios from 'axios';
+import { usePages } from '../hooks/useApi';
+import { formatDateTime } from '../utils/constants';
+import LoadingSpinner from './common/LoadingSpinner';
+import ErrorMessage from './common/ErrorMessage';
+import EmptyState from './common/EmptyState';
+import Button from './common/Button';
+import TagBadge from './common/TagBadge';
 
 const PageList = () => {
-  const [pages, setPages] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    fetchPages();
-  }, []);
-
-  const fetchPages = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get('/api/pages');
-      setPages(response.data);
-    } catch (err) {
-      setError('ページの取得に失敗しました');
-      console.error('Error fetching pages:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('ja-JP', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  const { pages, loading, error } = usePages();
 
   if (loading) {
-    return <div className="loading">読み込み中...</div>;
+    return <LoadingSpinner message="ページを読み込んでいます..." />;
   }
 
   if (error) {
-    return <div className="error">{error}</div>;
+    return <ErrorMessage message={error} />;
   }
 
   return (
     <div className="page-list">
-      <h2>学習ページ一覧</h2>
-      
-      <Link to="/page/new" className="create-button">
-        <Plus size={20} />
-        新しいページを作成
-      </Link>
-
-      {pages.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-          <BookOpen size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-          <p>まだページがありません。最初のページを作成してみましょう！</p>
-        </div>
-      ) : (
-        pages.map(page => (
-          <Link key={page.id} to={`/page/${page.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="page-card">
-              <h3>{page.title}</h3>
-              <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '12px' }}>
-                {page.content ? page.content.substring(0, 100) + (page.content.length > 100 ? '...' : '') : '内容なし'}
-              </p>
-              <div className="page-meta">
-                <div className="page-tags">
-                  {page.tags && page.tags.map(tag => (
-                    <span key={tag.id} className="tag" style={{ backgroundColor: tag.color }}>
-                      {tag.name}
-                    </span>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Clock size={14} />
-                  {formatDate(page.updated_at)}
-                </div>
-              </div>
-            </div>
-          </Link>
-        ))
-      )}
+      <PageListHeader />
+      <CreatePageButton />
+      <PageGrid pages={pages} />
     </div>
   );
 };
+
+const PageListHeader = () => (
+  <h2>学習ページ一覧</h2>
+);
+
+const CreatePageButton = () => (
+  <Link to="/page/new" className="create-button">
+    <Plus size={20} />
+    新しいページを作成
+  </Link>
+);
+
+const PageGrid = ({ pages }) => {
+  if (pages.length === 0) {
+    return (
+      <EmptyState
+        icon={BookOpen}
+        title="まだページがありません"
+        description="最初のページを作成してみましょう！"
+        action={
+          <Link to="/page/new">
+            <Button variant="primary" icon={Plus}>
+              ページを作成
+            </Button>
+          </Link>
+        }
+      />
+    );
+  }
+
+  return (
+    <div className="pages-grid">
+      {pages.map(page => (
+        <PageCard key={page.id} page={page} />
+      ))}
+    </div>
+  );
+};
+
+const PageCard = ({ page }) => (
+  <Link 
+    to={`/page/${page.id}`} 
+    style={{ textDecoration: 'none', color: 'inherit' }}
+  >
+    <div className="page-card">
+      <PageTitle title={page.title} />
+      <PageContent content={page.content} />
+      <PageMeta page={page} />
+    </div>
+  </Link>
+);
+
+const PageTitle = ({ title }) => (
+  <h3>{title}</h3>
+);
+
+const PageContent = ({ content }) => (
+  <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '12px' }}>
+    {content 
+      ? content.substring(0, 100) + (content.length > 100 ? '...' : '')
+      : '内容なし'
+    }
+  </p>
+);
+
+const PageMeta = ({ page }) => (
+  <div className="page-meta">
+    <PageTags tags={page.tags} />
+    <PageDate date={page.updated_at} />
+  </div>
+);
+
+const PageTags = ({ tags }) => (
+  <div className="page-tags">
+    {tags && tags.map(tag => (
+      <TagBadge key={tag.id} tag={tag} size="small" />
+    ))}
+  </div>
+);
+
+const PageDate = ({ date }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+    <Clock size={14} />
+    {formatDateTime(date)}
+  </div>
+);
 
 export default PageList;
