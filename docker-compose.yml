@@ -1,0 +1,60 @@
+services:
+  # データベース
+  postgres:
+    image: postgres:15
+    container_name: learning_app_db
+    environment:
+      POSTGRES_DB: learning_app
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - learning_network
+
+  # バックエンドAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: learning_app_backend
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://user:password@postgres:5432/learning_app
+      NODE_ENV: development
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - learning_network
+
+  # フロントエンド
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: learning_app_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:3001
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - learning_network
+
+volumes:
+  postgres_data:
+
+networks:
+  learning_network:
+    driver: bridge
