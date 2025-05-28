@@ -1,6 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { 
-  generateNodeId, 
   generateEdgeId, 
   createDefaultTreeNode 
 } from '../utils/constants';
@@ -10,8 +9,9 @@ export const useTreeEditor = (initialTreeData = { nodes: [], edges: [] }, onChan
   const [editingNode, setEditingNode] = useState(null);
   const [editValue, setEditValue] = useState('');
 
-  const nodes = initialTreeData?.nodes || [];
-  const edges = initialTreeData?.edges || [];
+  // nodesとedgesをメモ化して依存配列の問題を解決
+  const nodes = useMemo(() => initialTreeData?.nodes || [], [initialTreeData?.nodes]);
+  const edges = useMemo(() => initialTreeData?.edges || [], [initialTreeData?.edges]);
 
   // ノード追加
   const addNode = useCallback(() => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 
 // 基本的なAPIフック
@@ -6,6 +6,12 @@ export const useApi = (url, options = {}) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // optionsの文字列化を別変数に抽出
+  const optionsString = JSON.stringify(options);
+  
+  // optionsをメモ化して無限ループを防ぐ
+  const memoizedOptions = useMemo(() => options, [optionsString]);
 
   const fetchData = useCallback(async () => {
     // URLがnullまたは空の場合はリクエストを送らない
@@ -17,7 +23,7 @@ export const useApi = (url, options = {}) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(url, options);
+      const response = await axios.get(url, memoizedOptions);
       setData(response.data);
     } catch (err) {
       setError(err.response?.data?.error || 'データの取得に失敗しました');
@@ -25,7 +31,7 @@ export const useApi = (url, options = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [url]);
+  }, [url, memoizedOptions]);
 
   useEffect(() => {
     fetchData();

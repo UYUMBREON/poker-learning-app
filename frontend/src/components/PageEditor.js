@@ -25,12 +25,13 @@ const PageEditor = () => {
   // ページデータが読み込まれたらフォームを更新（新規ページの場合は実行しない）
   useEffect(() => {
     if (page && !isNewPage) {
+      // setValue関数を直接呼び出すのではなく、個別に設定
       form.setValue('title', page.title);
       form.setValue('content', page.content || '');
       form.setValue('tree_data', page.tree_data || { nodes: [], edges: [] });
       form.setValue('tags', page.tags?.map(tag => tag.id) || []);
     }
-  }, [page, isNewPage]);
+  }, [page, isNewPage]); // form全体を依存配列から除外
 
   const handleSave = async () => {
     if (!form.validate()) {
