@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 
 // 基本的なフォームフック
 export const useForm = (initialValues = {}, validators = {}) => {
@@ -6,18 +6,21 @@ export const useForm = (initialValues = {}, validators = {}) => {
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
 
+  // validatorsをメモ化
+  const memoizedValidators = useMemo(() => validators, [validators]);
+
   const setValue = useCallback((name, value) => {
     setValues(prev => ({ ...prev, [name]: value }));
     
     // バリデーション実行
-    if (validators[name]) {
-      const validation = validators[name](value);
+    if (memoizedValidators[name]) {
+      const validation = memoizedValidators[name](value);
       setErrors(prev => ({
         ...prev,
         [name]: validation.isValid ? null : validation.error
       }));
     }
-  }, [validators]);
+  }, [memoizedValidators]);
 
   const setFieldTouched = useCallback((name) => {
     setTouched(prev => ({ ...prev, [name]: true }));
@@ -43,8 +46,8 @@ export const useForm = (initialValues = {}, validators = {}) => {
     const newErrors = {};
     let isValid = true;
 
-    Object.keys(validators).forEach(name => {
-      const validation = validators[name](values[name]);
+    Object.keys(memoizedValidators).forEach(name => {
+      const validation = memoizedValidators[name](values[name]);
       if (!validation.isValid) {
         newErrors[name] = validation.error;
         isValid = false;
@@ -53,7 +56,7 @@ export const useForm = (initialValues = {}, validators = {}) => {
 
     setErrors(newErrors);
     return isValid;
-  }, [values, validators]);
+  }, [values, memoizedValidators]);
 
   return {
     values,
@@ -69,27 +72,27 @@ export const useForm = (initialValues = {}, validators = {}) => {
 
 // ページエディター用フォーム
 export const usePageForm = (initialPage = null) => {
-  const initialValues = {
+  const initialValues = useMemo(() => ({
     title: initialPage?.title || '',
     content: initialPage?.content || '',
     tree_data: initialPage?.tree_data || { nodes: [], edges: [] },
     tags: initialPage?.tags?.map(tag => tag.id) || []
-  };
+  }), [initialPage]);
 
-  const validators = {
+  const validators = useMemo(() => ({
     title: (value) => {
       if (!value || !value.trim()) {
         return { isValid: false, error: 'ページタイトルは必須です' };
       }
       return { isValid: true, error: null };
     }
-  };
+  }), []);
 
   const form = useForm(initialValues, validators);
 
   const updateTreeData = useCallback((newTreeData) => {
     form.setValue('tree_data', newTreeData);
-  }, [form]);
+  }, [form.setValue]);
 
   const toggleTag = useCallback((tagId) => {
     const currentTags = form.values.tags || [];
@@ -97,7 +100,7 @@ export const usePageForm = (initialPage = null) => {
       ? currentTags.filter(id => id !== tagId)
       : [...currentTags, tagId];
     form.setValue('tags', newTags);
-  }, [form]);
+  }, [form.setValue, form.values.tags]);
 
   return {
     ...form,
@@ -108,12 +111,12 @@ export const usePageForm = (initialPage = null) => {
 
 // タグフォーム
 export const useTagForm = (initialTag = null) => {
-  const initialValues = {
+  const initialValues = useMemo(() => ({
     name: initialTag?.name || '',
     color: initialTag?.color || '#3B82F6'
-  };
+  }), [initialTag]);
 
-  const validators = {
+  const validators = useMemo(() => ({
     name: (value) => {
       if (!value || !value.trim()) {
         return { isValid: false, error: 'タグ名は必須です' };
@@ -123,7 +126,7 @@ export const useTagForm = (initialTag = null) => {
       }
       return { isValid: true, error: null };
     }
-  };
+  }), []);
 
   return useForm(initialValues, validators);
 };

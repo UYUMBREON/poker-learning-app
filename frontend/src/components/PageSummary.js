@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Search, X, BookOpen, Filter, Table } from 'lucide-react';
+import { X, BookOpen, Table } from 'lucide-react';
 import { usePages, useTags } from '../hooks/useApi';
 import { useSearch } from '../hooks/useSearch';
 import { formatDate } from '../utils/constants';
