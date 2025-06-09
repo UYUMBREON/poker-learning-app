@@ -271,7 +271,7 @@
 
 /* Markdown要素のスタイル - より見やすく調整 */
 .markdown-h1 {
-  font-size: 2.25rem;
+  font-size: calc(1rem + 10pt); /* 基本サイズ + 10pt に変更 */
   font-weight: 700;
   color: #1e293b;
   margin: 2em 0 1em 0;
@@ -285,7 +285,7 @@
 }
 
 .markdown-h2 {
-  font-size: 1.75rem;
+  font-size: calc(1rem + 8pt); /* 基本サイズ + 8pt に変更 */
   font-weight: 600;
   color: #334155;
   margin: 1.5em 0 0.75em 0;
@@ -295,7 +295,7 @@
 }
 
 .markdown-h3 {
-  font-size: 1.375rem;
+  font-size: calc(1rem + 6pt); /* 基本サイズ + 6pt に変更 */
   font-weight: 600;
   color: #475569;
   margin: 1.25em 0 0.5em 0;
@@ -303,7 +303,7 @@
 }
 
 .markdown-h4 {
-  font-size: 1.125rem;
+  font-size: calc(1rem + 4pt); /* 基本サイズ + 4pt に変更 */
   font-weight: 600;
   color: #64748b;
   margin: 1em 0 0.5em 0;
@@ -311,7 +311,7 @@
 }
 
 .markdown-h5 {
-  font-size: 1rem;
+  font-size: calc(1rem + 2pt); /* 基本サイズ + 2pt に変更 */
   font-weight: 600;
   color: #64748b;
   margin: 0.875em 0 0.375em 0;
@@ -319,7 +319,7 @@
 }
 
 .markdown-h6 {
-  font-size: 0.875rem;
+  font-size: calc(1rem + 2pt); /* 基本サイズ + 2pt に変更 */
   font-weight: 600;
   color: #64748b;
   margin: 0.75em 0 0.25em 0;
@@ -2279,4 +2279,96 @@ body {
   font-weight: 500;
   min-width: 60px;
   text-align: center;
+}
+
+/* =================================
+   見出し展開・縮小機能のスタイル
+   ================================= */
+
+/* 展開・縮小可能な見出しスタイル */
+.collapsible-heading {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  position: relative;
+}
+
+.collapsible-heading:hover {
+  opacity: 0.8;
+}
+
+/* 見出しトグルボタン */
+.heading-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  border-radius: 4px;
+  background: rgba(59, 130, 246, 0.1);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.collapsible-heading:hover .heading-toggle {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+/* シェブロンアイコン */
+.chevron-icon {
+  transition: transform 0.2s ease;
+  color: #3b82f6;
+}
+
+/* 見出しテキスト */
+.heading-text {
+  flex: 1;
+}
+
+/* 縮小されたセクションの表示制御はJavaScriptで行う */
+.markdown-content {
+  margin: 1em 0;
+  line-height: 1.7;
+  color: #374151;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .heading-toggle {
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+  }
+  
+  .chevron-icon {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .markdown-h1 {
+    font-size: calc(1rem + 8pt); /* モバイルでは少し小さく */
+  }
+  
+  .markdown-h2 {
+    font-size: calc(1rem + 6pt);
+  }
+  
+  .markdown-h3 {
+    font-size: calc(1rem + 4pt);
+  }
+  
+  .markdown-h4 {
+    font-size: calc(1rem + 2pt);
+  }
+  
+  .markdown-h5 {
+    font-size: calc(1rem + 1pt);
+  }
+  
+  .markdown-h6 {
+    font-size: calc(1rem + 1pt);
+  }
 }

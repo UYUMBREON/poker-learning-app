@@ -1,16 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 // Markdownライブラリが利用できない場合の代替実装
 const MarkdownViewer = ({ content, className = "" }) => {
-  if (!content || !content.trim()) {
-    return (
-      <div className={`markdown-viewer empty-content ${className}`}>
-        <p className="empty-message">内容がありません</p>
-      </div>
-    );
-  }
+  const [collapsedSections, setCollapsedSections] = useState(new Set());
 
-  // 簡易Markdownパーサー
+  // 見出しの展開・縮小を切り替える関数
+  const toggleSection = (headingId) => {
+    setCollapsedSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(headingId)) {
+        newSet.delete(headingId);
+      } else {
+        newSet.add(headingId);
+      }
+      return newSet;
+    });
+  };
+
+  // 拡張Markdownパーサー
   const parseMarkdown = (text) => {
     let html = text;
     
@@ -38,13 +45,74 @@ const MarkdownViewer = ({ content, className = "" }) => {
       return placeholder;
     });
     
-    // 3. 見出しを処理（段落処理の前に）
-    html = html.replace(/^#{6}\s+(.*$)/gm, '<h6 class="markdown-h6">$1</h6>');
-    html = html.replace(/^#{5}\s+(.*$)/gm, '<h5 class="markdown-h5">$1</h5>');
-    html = html.replace(/^#{4}\s+(.*$)/gm, '<h4 class="markdown-h4">$1</h4>');
-    html = html.replace(/^#{3}\s+(.*$)/gm, '<h3 class="markdown-h3">$1</h3>');
-    html = html.replace(/^#{2}\s+(.*$)/gm, '<h2 class="markdown-h2">$1</h2>');
-    html = html.replace(/^#{1}\s+(.*$)/gm, '<h1 class="markdown-h1">$1</h1>');
+    // 3. 見出しを処理（段落処理の前に）- 展開・縮小機能付き
+    let headingCounter = 0;
+    html = html.replace(/^#{6}\s+(.*$)/gm, (match, title) => {
+      const headingId = `heading-${headingCounter++}`;
+      return `<h6 class="markdown-h6 collapsible-heading" data-heading-id="${headingId}" data-level="6">
+        <span class="heading-toggle">
+          <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9,18 15,12 9,6"></polyline>
+          </svg>
+        </span>
+        <span class="heading-text">${title}</span>
+      </h6>`;
+    });
+    html = html.replace(/^#{5}\s+(.*$)/gm, (match, title) => {
+      const headingId = `heading-${headingCounter++}`;
+      return `<h5 class="markdown-h5 collapsible-heading" data-heading-id="${headingId}" data-level="5">
+        <span class="heading-toggle">
+          <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9,18 15,12 9,6"></polyline>
+          </svg>
+        </span>
+        <span class="heading-text">${title}</span>
+      </h5>`;
+    });
+    html = html.replace(/^#{4}\s+(.*$)/gm, (match, title) => {
+      const headingId = `heading-${headingCounter++}`;
+      return `<h4 class="markdown-h4 collapsible-heading" data-heading-id="${headingId}" data-level="4">
+        <span class="heading-toggle">
+          <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9,18 15,12 9,6"></polyline>
+          </svg>
+        </span>
+        <span class="heading-text">${title}</span>
+      </h4>`;
+    });
+    html = html.replace(/^#{3}\s+(.*$)/gm, (match, title) => {
+      const headingId = `heading-${headingCounter++}`;
+      return `<h3 class="markdown-h3 collapsible-heading" data-heading-id="${headingId}" data-level="3">
+        <span class="heading-toggle">
+          <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9,18 15,12 9,6"></polyline>
+          </svg>
+        </span>
+        <span class="heading-text">${title}</span>
+      </h3>`;
+    });
+    html = html.replace(/^#{2}\s+(.*$)/gm, (match, title) => {
+      const headingId = `heading-${headingCounter++}`;
+      return `<h2 class="markdown-h2 collapsible-heading" data-heading-id="${headingId}" data-level="2">
+        <span class="heading-toggle">
+          <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9,18 15,12 9,6"></polyline>
+          </svg>
+        </span>
+        <span class="heading-text">${title}</span>
+      </h2>`;
+    });
+    html = html.replace(/^#{1}\s+(.*$)/gm, (match, title) => {
+      const headingId = `heading-${headingCounter++}`;
+      return `<h1 class="markdown-h1 collapsible-heading" data-heading-id="${headingId}" data-level="1">
+        <span class="heading-toggle">
+          <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9,18 15,12 9,6"></polyline>
+          </svg>
+        </span>
+        <span class="heading-text">${title}</span>
+      </h1>`;
+    });
     
     // 4. 引用を処理
     html = html.replace(/^>\s+(.*$)/gm, '<blockquote class="markdown-blockquote">$1</blockquote>');
@@ -84,7 +152,7 @@ const MarkdownViewer = ({ content, className = "" }) => {
       if (trimmed.match(/^<(h[1-6]|blockquote|ul|ol|hr|pre)/)) {
         return trimmed.replace(/\n/g, ' ');
       }
-      return `<p class="markdown-paragraph">${trimmed.replace(/\n/g, '<br>')}</p>`;
+      return `<div class="markdown-content">${trimmed.replace(/\n/g, '<br>')}</div>`;
     }).join('');
     
     // 10. プレースホルダーを実際のコンテンツに置換
@@ -114,11 +182,75 @@ const MarkdownViewer = ({ content, className = "" }) => {
     return html;
   };
 
-  const htmlContent = parseMarkdown(content);
+  // セクション構造を解析してDOM操作で展開・縮小を制御
+  useEffect(() => {
+    // コンテンツが空の場合は何もしない
+    if (!content || !content.trim()) {
+      return;
+    }
 
-  // リンククリック時の処理
+    // classNameが空の場合はmarkdown-viewerクラスで検索
+    const selectorClass = className.trim() || 'markdown-viewer';
+    const cleanSelector = selectorClass.replace(/\s+/g, '.');
+    
+    // セレクターが空でないことを確認
+    if (!cleanSelector) {
+      return;
+    }
+
+    const viewer = document.querySelector(`.${cleanSelector}`);
+    if (!viewer) return;
+
+    const headings = viewer.querySelectorAll('.collapsible-heading');
+    
+    headings.forEach(heading => {
+      const headingId = heading.getAttribute('data-heading-id');
+      const level = parseInt(heading.getAttribute('data-level'));
+      const chevron = heading.querySelector('.chevron-icon');
+      
+      // セクションが縮小されているかチェック
+      const isCollapsed = collapsedSections.has(headingId);
+      
+      // シェブロンの向きを更新
+      if (chevron) {
+        chevron.style.transform = isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)';
+      }
+      
+      // 次の要素から次の同レベル以上の見出しまでを取得
+      let nextElement = heading.nextElementSibling;
+      const elementsToToggle = [];
+      
+      while (nextElement) {
+        if (nextElement.classList.contains('collapsible-heading')) {
+          const nextLevel = parseInt(nextElement.getAttribute('data-level'));
+          if (nextLevel <= level) {
+            break; // 同レベル以上の見出しに達したら終了
+          }
+        }
+        elementsToToggle.push(nextElement);
+        nextElement = nextElement.nextElementSibling;
+      }
+      
+      // 要素の表示・非表示を制御
+      elementsToToggle.forEach(element => {
+        element.style.display = isCollapsed ? 'none' : '';
+      });
+    });
+  }, [collapsedSections, className, content]);
+
+  // リンククリック時とヘッダークリック時の処理
   const handleClick = (e) => {
-    const target = e.target;
+    const target = e.target.closest('.collapsible-heading') || e.target;
+    
+    // 見出しクリック時の処理
+    if (target.classList.contains('collapsible-heading') || target.closest('.collapsible-heading')) {
+      const heading = target.classList.contains('collapsible-heading') ? target : target.closest('.collapsible-heading');
+      const headingId = heading.getAttribute('data-heading-id');
+      toggleSection(headingId);
+      return;
+    }
+    
+    // リンククリック時の処理
     if (target.tagName === 'A' && target.classList.contains('markdown-link')) {
       const href = target.getAttribute('href');
       // 外部リンクまたは絶対URLの場合のみデフォルト動作を許可
@@ -131,6 +263,17 @@ const MarkdownViewer = ({ content, className = "" }) => {
       console.warn('相対リンクは現在サポートされていません:', href);
     }
   };
+
+  const htmlContent = parseMarkdown(content);
+
+  // コンテンツが空の場合の早期リターン
+  if (!content || !content.trim()) {
+    return (
+      <div className={`markdown-viewer empty-content ${className}`}>
+        <p className="empty-message">内容がありません</p>
+      </div>
+    );
+  }
 
   return (
     <div 

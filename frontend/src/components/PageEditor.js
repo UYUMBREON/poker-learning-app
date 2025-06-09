@@ -249,8 +249,6 @@ const TreeSection = ({ treeData, onChange, onChapterFocus }) => (
 );
 
 const ContentSection = ({ content, onChange, textareaRef, isPreviewMode, onTogglePreview }) => {
-  console.log('ContentSection - content:', content, 'isPreviewMode:', isPreviewMode); // デバッグ用
-
   return (
     <div className="content-section">
       <div className="content-header">
@@ -281,12 +279,6 @@ const ContentSection = ({ content, onChange, textareaRef, isPreviewMode, onToggl
       {isPreviewMode ? (
         <div className="content-preview">
           <MarkdownViewer content={content} />
-          {/* デバッグ情報 - 必要に応じてコメントアウト */}
-          <div className="debug-content">
-            <strong>デバッグ情報:</strong><br/>
-            Content length: {content ? content.length : 0}<br/>
-            Content preview: {content ? content.substring(0, 100) + '...' : 'empty'}
-          </div>
         </div>
       ) : (
         <div className="content-editor">
