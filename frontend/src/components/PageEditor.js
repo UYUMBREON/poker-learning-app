@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Save, Trash2, GitBranch, FileText, Tag } from 'lucide-react';
+import { Save, Trash2, GitBranch, FileText, Tag, Eye, Edit, ArrowLeft } from 'lucide-react';
 import { usePage, usePages, useTags } from '../hooks/useApi';
 import { usePageForm } from '../hooks/useForm';
 import LoadingSpinner from './common/LoadingSpinner';
@@ -8,12 +8,14 @@ import ErrorMessage from './common/ErrorMessage';
 import Button from './common/Button';
 import TreeEditor from './TreeEditor';
 import TagSelector from './TagSelector';
+import MarkdownViewer from './common/MarkdownViewer';
 
 const PageEditor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isNewPage = !id;
   const contentTextareaRef = useRef(null);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
   
   // 新規ページの場合はAPIを呼ばない
   const { page, loading: pageLoading, error: pageError } = usePage(isNewPage ? null : id);
@@ -25,51 +27,58 @@ const PageEditor = () => {
 
   // 章へのフォーカス機能
   const handleChapterFocus = (node) => {
-    if (contentTextareaRef.current) {
-      const content = form.values.content;
-      const chapterMarker = `## ${node.label}`;
-      
-      // 既存の章マーカーを探す
-      let chapterIndex = content.indexOf(chapterMarker);
-      
-      if (chapterIndex === -1) {
-        // 章マーカーが存在しない場合は作成
-        const newContent = content + (content ? '\n\n' : '') + `${chapterMarker}\n\n`;
-        form.setValue('content', newContent);
-        
-        // 次のtickで新しいコンテンツでフォーカス
-        setTimeout(() => {
-          const updatedContent = form.values.content;
-          const newChapterIndex = updatedContent.indexOf(chapterMarker);
-          if (newChapterIndex !== -1) {
-            const position = newChapterIndex + chapterMarker.length;
-            contentTextareaRef.current.focus();
-            contentTextareaRef.current.setSelectionRange(position, position);
-            contentTextareaRef.current.scrollTop = 
-              contentTextareaRef.current.scrollHeight * (position / updatedContent.length);
-          }
-        }, 100);
-      } else {
-        // 既存の章マーカーにフォーカス
-        const position = chapterIndex + chapterMarker.length;
-        contentTextareaRef.current.focus();
-        contentTextareaRef.current.setSelectionRange(position, position);
-        contentTextareaRef.current.scrollTop = 
-          contentTextareaRef.current.scrollHeight * (position / content.length);
-      }
+    // プレビューモードの場合は編集モードに切り替え
+    if (isPreviewMode) {
+      setIsPreviewMode(false);
     }
+
+    // 次のtickでテキストエリアにフォーカス
+    setTimeout(() => {
+      if (contentTextareaRef.current) {
+        const content = form.values.content;
+        const chapterMarker = `## ${node.label}`;
+        
+        // 既存の章マーカーを探す
+        let chapterIndex = content.indexOf(chapterMarker);
+        
+        if (chapterIndex === -1) {
+          // 章マーカーが存在しない場合は作成
+          const newContent = content + (content ? '\n\n' : '') + `${chapterMarker}\n\n`;
+          form.setValue('content', newContent);
+          
+          // 次のtickで新しいコンテンツでフォーカス
+          setTimeout(() => {
+            const updatedContent = form.values.content;
+            const newChapterIndex = updatedContent.indexOf(chapterMarker);
+            if (newChapterIndex !== -1) {
+              const position = newChapterIndex + chapterMarker.length;
+              contentTextareaRef.current.focus();
+              contentTextareaRef.current.setSelectionRange(position, position);
+              contentTextareaRef.current.scrollTop = 
+                contentTextareaRef.current.scrollHeight * (position / updatedContent.length);
+            }
+          }, 100);
+        } else {
+          // 既存の章マーカーにフォーカス
+          const position = chapterIndex + chapterMarker.length;
+          contentTextareaRef.current.focus();
+          contentTextareaRef.current.setSelectionRange(position, position);
+          contentTextareaRef.current.scrollTop = 
+            contentTextareaRef.current.scrollHeight * (position / content.length);
+        }
+      }
+    }, 100);
   };
 
   // ページデータが読み込まれたらフォームを更新（新規ページの場合は実行しない）
   useEffect(() => {
     if (page && !isNewPage) {
-      // setValue関数を直接呼び出すのではなく、個別に設定
       form.setValue('title', page.title);
       form.setValue('content', page.content || '');
       form.setValue('tree_data', page.tree_data || { nodes: [], edges: [] });
       form.setValue('tags', page.tags?.map(tag => tag.id) || []);
     }
-  }, [page, isNewPage]); // form全体を依存配列から除外
+  }, [page, isNewPage]);
 
   const handleSave = async () => {
     if (!form.validate()) {
@@ -91,7 +100,7 @@ const PageEditor = () => {
         navigate(`/page/${newPage.id}`);
       } else {
         await updatePage(id, pageData);
-        alert('保存しました！');
+        navigate(`/page/${id}`);
       }
     } catch (error) {
       alert(error.message);
@@ -113,6 +122,18 @@ const PageEditor = () => {
     }
   };
 
+  const handleBackToView = () => {
+    if (!isNewPage) {
+      navigate(`/page/${id}`);
+    } else {
+      navigate('/');
+    }
+  };
+
+  const togglePreview = () => {
+    setIsPreviewMode(!isPreviewMode);
+  };
+
   // ローディング状態の判定を修正
   const loading = (!isNewPage && pageLoading) || tagsLoading;
 
@@ -132,6 +153,7 @@ const PageEditor = () => {
         saving={saving}
         onSave={handleSave}
         onDelete={!isNewPage ? handleDelete : undefined}
+        onBack={handleBackToView}
       />
 
       <TitleInput 
@@ -150,6 +172,8 @@ const PageEditor = () => {
           content={form.values.content}
           onChange={(value) => form.setValue('content', value)}
           textareaRef={contentTextareaRef}
+          isPreviewMode={isPreviewMode}
+          onTogglePreview={togglePreview}
         />
       </div>
 
@@ -162,9 +186,19 @@ const PageEditor = () => {
   );
 };
 
-const EditorHeader = ({ isNewPage, saving, onSave, onDelete }) => (
+const EditorHeader = ({ isNewPage, saving, onSave, onDelete, onBack }) => (
   <div className="editor-header">
-    <h2>{isNewPage ? '新しいページ' : 'ページ編集'}</h2>
+    <div className="editor-title-section">
+      <Button
+        variant="secondary"
+        size="small"
+        icon={ArrowLeft}
+        onClick={onBack}
+      >
+        戻る
+      </Button>
+      <h2>{isNewPage ? '新しいページ' : 'ページ編集'}</h2>
+    </div>
     <div className="editor-actions">
       <Button
         variant="primary"
@@ -214,21 +248,67 @@ const TreeSection = ({ treeData, onChange, onChapterFocus }) => (
   </div>
 );
 
-const ContentSection = ({ content, onChange, textareaRef }) => (
-  <div className="content-section">
-    <h3 className="section-title">
-      <FileText size={20} />
-      内容
-    </h3>
-    <textarea
-      ref={textareaRef}
-      className="content-textarea"
-      placeholder="ページの内容を入力してください...&#10;&#10;## 章タイトル&#10;各章の内容をここに記述します。"
-      value={content}
-      onChange={(e) => onChange(e.target.value)}
-    />
-  </div>
-);
+const ContentSection = ({ content, onChange, textareaRef, isPreviewMode, onTogglePreview }) => {
+  console.log('ContentSection - content:', content, 'isPreviewMode:', isPreviewMode); // デバッグ用
+
+  return (
+    <div className="content-section">
+      <div className="content-header">
+        <h3 className="section-title">
+          <FileText size={20} />
+          内容 {isPreviewMode ? '(プレビュー)' : '(編集)'}
+        </h3>
+        <div className="content-mode-toggle">
+          <Button
+            variant={!isPreviewMode ? "primary" : "secondary"}
+            size="small"
+            icon={Edit}
+            onClick={() => !isPreviewMode || onTogglePreview()}
+          >
+            編集
+          </Button>
+          <Button
+            variant={isPreviewMode ? "primary" : "secondary"}
+            size="small"
+            icon={Eye}
+            onClick={() => isPreviewMode || onTogglePreview()}
+          >
+            プレビュー
+          </Button>
+        </div>
+      </div>
+      
+      {isPreviewMode ? (
+        <div className="content-preview">
+          <MarkdownViewer content={content} />
+          {/* デバッグ情報 - 必要に応じてコメントアウト */}
+          <div className="debug-content">
+            <strong>デバッグ情報:</strong><br/>
+            Content length: {content ? content.length : 0}<br/>
+            Content preview: {content ? content.substring(0, 100) + '...' : 'empty'}
+          </div>
+        </div>
+      ) : (
+        <div className="content-editor">
+          <textarea
+            ref={textareaRef}
+            className="content-textarea"
+            placeholder="ページの内容をMarkdown形式で入力してください...&#10;&#10;## 章タイトル&#10;各章の内容をここに記述します。&#10;&#10;### サブセクション&#10;**太字**や*斜体*、`コード`なども使用できます。&#10;&#10;- リスト項目1&#10;- リスト項目2&#10;&#10;> 重要な引用や注意事項&#10;&#10;```javascript&#10;// コードブロックも記述可能&#10;console.log('Hello, World!');&#10;```"
+            value={content}
+            onChange={(e) => onChange(e.target.value)}
+          />
+          <div className="markdown-help">
+            <p>
+              <strong>Markdownヘルプ:</strong> 
+              ## 見出し、**太字**、*斜体*、`コード`、[リンク](URL)、
+              ```コードブロック```、- リスト、> 引用 などが使用できます
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const TagsSection = ({ tags, selectedTags, onToggleTag }) => (
   <div className="tags-section">

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Clock, BookOpen } from 'lucide-react';
+import { Plus, Clock, BookOpen, Edit } from 'lucide-react';
 import { usePages } from '../hooks/useApi';
 import { formatDateTime } from '../utils/constants';
 import LoadingSpinner from './common/LoadingSpinner';
@@ -68,20 +68,21 @@ const PageGrid = ({ pages }) => {
 };
 
 const PageCard = ({ page }) => (
+  <div className="page-card">
+    <PageTitle page={page} />
+    <PageContent content={page.content} />
+    <PageMeta page={page} />
+    <PageActions page={page} />
+  </div>
+);
+
+const PageTitle = ({ page }) => (
   <Link 
     to={`/page/${page.id}`} 
     style={{ textDecoration: 'none', color: 'inherit' }}
   >
-    <div className="page-card">
-      <PageTitle title={page.title} />
-      <PageContent content={page.content} />
-      <PageMeta page={page} />
-    </div>
+    <h3>{page.title}</h3>
   </Link>
-);
-
-const PageTitle = ({ title }) => (
-  <h3>{title}</h3>
 );
 
 const PageContent = ({ content }) => (
@@ -112,6 +113,19 @@ const PageDate = ({ date }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
     <Clock size={14} />
     {formatDateTime(date)}
+  </div>
+);
+
+const PageActions = ({ page }) => (
+  <div className="page-actions-row">
+    <Link to={`/page/${page.id}`} className="action-link view-link">
+      <BookOpen size={16} />
+      閲覧
+    </Link>
+    <Link to={`/page/${page.id}/edit`} className="action-link edit-link">
+      <Edit size={16} />
+      編集
+    </Link>
   </div>
 );
 
