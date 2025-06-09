@@ -154,7 +154,10 @@ const PageRow = ({ page }) => (
       {formatDate(page.updated_at)}
     </td>
     <td className="page-actions">
-      <Link to={`/page/${page.id}`} className="edit-link">
+      <Link to={`/page/${page.id}`} className="view-link">
+        閲覧
+      </Link>
+      <Link to={`/page/${page.id}/edit`} className="edit-link">
         編集
       </Link>
     </td>
