@@ -6,7 +6,6 @@ import { formatDateTime } from '../utils/constants';
 import LoadingSpinner from './common/LoadingSpinner';
 import ErrorMessage from './common/ErrorMessage';
 import EmptyState from './common/EmptyState';
-import Button from './common/Button';
 import TagBadge from './common/TagBadge';
 
 const PageList = () => {
@@ -23,21 +22,19 @@ const PageList = () => {
   return (
     <div className="page-list">
       <PageListHeader />
-      <CreatePageButton />
       <PageGrid pages={pages} />
     </div>
   );
 };
 
 const PageListHeader = () => (
-  <h2>学習ページ一覧</h2>
-);
-
-const CreatePageButton = () => (
-  <Link to="/page/new" className="create-button">
-    <Plus size={20} />
-    新しいページを作成
-  </Link>
+  <div className="page-list-header">
+    <h2>学習ページ一覧</h2>
+    <Link to="/page/new" className="header-create-button">
+      <Plus size={20} />
+      新しいページを作成
+    </Link>
+  </div>
 );
 
 const PageGrid = ({ pages }) => {
@@ -46,14 +43,7 @@ const PageGrid = ({ pages }) => {
       <EmptyState
         icon={BookOpen}
         title="まだページがありません"
-        description="最初のページを作成してみましょう！"
-        action={
-          <Link to="/page/new">
-            <Button variant="primary" icon={Plus}>
-              ページを作成
-            </Button>
-          </Link>
-        }
+        description="右上の「新しいページを作成」ボタンから最初のページを作成してみましょう！"
       />
     );
   }
