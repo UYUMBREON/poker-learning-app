@@ -1,11 +1,14 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { generateNodeId } from '../utils/constants';
 
-// 階層型ツリーエディター用フック
+// 階層型ツリーエディター用フック（拡張版）
 export const useHierarchicalTreeEditor = (initialTreeData = { nodes: [], hierarchyLevels: [] }, onChange, onChapterFocus) => {
   const [selectedNode, setSelectedNode] = useState(null);
   const [editingNode, setEditingNode] = useState(null);
   const [editValue, setEditValue] = useState('');
+  const [selectedEdge, setSelectedEdge] = useState(null);
+  const [editingEdge, setEditingEdge] = useState(null);
+  const [edgeEditValue, setEdgeEditValue] = useState('');
 
   // 初期データの処理
   const initializeHierarchy = useCallback(() => {
@@ -24,7 +27,9 @@ export const useHierarchicalTreeEditor = (initialTreeData = { nodes: [], hierarc
             ...node,
             level: 0,
             parentId: null,
-            hasChildren: false
+            hasChildren: false,
+            color: node.color || '#3B82F6', // デフォルト色
+            size: node.size || 50 // デフォルトサイズ
           }))
         }
       ];
@@ -36,7 +41,9 @@ export const useHierarchicalTreeEditor = (initialTreeData = { nodes: [], hierarc
       label: 'メインテーマ',
       level: 0,
       parentId: null,
-      hasChildren: false
+      hasChildren: false,
+      color: '#3B82F6',
+      size: 50
     };
 
     return [
@@ -49,24 +56,28 @@ export const useHierarchicalTreeEditor = (initialTreeData = { nodes: [], hierarc
   }, [initialTreeData]);
 
   const [hierarchyLevels, setHierarchyLevels] = useState(() => initializeHierarchy());
+  const [edges, setEdges] = useState(() => initialTreeData.edges || []);
 
   // データが変更された時にhierarchyLevelsを更新
   useEffect(() => {
     if (initialTreeData.hierarchyLevels) {
       setHierarchyLevels(initialTreeData.hierarchyLevels);
     }
-  }, [initialTreeData.hierarchyLevels]);
+    if (initialTreeData.edges) {
+      setEdges(initialTreeData.edges);
+    }
+  }, [initialTreeData.hierarchyLevels, initialTreeData.edges]);
 
   // データ変更をonChangeで通知
-  const notifyChange = useCallback((newHierarchyLevels) => {
+  const notifyChange = useCallback((newHierarchyLevels, newEdges = edges) => {
     const treeData = {
       hierarchyLevels: newHierarchyLevels,
+      edges: newEdges,
       // 後方互換性のためnodesも含める
-      nodes: newHierarchyLevels.flatMap(level => level.nodes),
-      edges: [] // 階層構造では不要
+      nodes: newHierarchyLevels.flatMap(level => level.nodes)
     };
     onChange?.(treeData);
-  }, [onChange]);
+  }, [onChange, edges]);
 
   // 子ノードを追加
   const addChildNode = useCallback((parentId) => {
@@ -86,7 +97,12 @@ export const useHierarchicalTreeEditor = (initialTreeData = { nodes: [], hierarc
         }
       }
       
-      if (parentLevel === -1) return prevLevels;
+      if (parentLevel === -1) {
+        console.log('親ノードが見つかりません:', parentId);
+        return prevLevels;
+      }
+      
+      console.log('親ノードが見つかりました:', { parentLevel, parentNodeIndex, parentId });
       
       // 親ノードにhasChildren = trueを設定
       newLevels[parentLevel].nodes[parentNodeIndex].hasChildren = true;
@@ -99,6 +115,7 @@ export const useHierarchicalTreeEditor = (initialTreeData = { nodes: [], hierarc
           collapsed: false,
           nodes: []
         });
+        console.log('新しい階層を作成しました:', childLevel);
       }
       
       // 新しい子ノードを作成
@@ -107,12 +124,48 @@ export const useHierarchicalTreeEditor = (initialTreeData = { nodes: [], hierarc
         label: '新しい項目',
         level: childLevel,
         parentId: parentId,
-        hasChildren: false
+        hasChildren: false,
+        color: '#3B82F6',
+        size: 50
       };
       
       newLevels[childLevel].nodes.push(newNode);
+      console.log('新しいノードを追加しました:', newNode);
       
       return newLevels;
+    });
+
+    // エッジを追加（setEdgesを直接呼び出し）
+    setEdges(prevEdges => {
+      const newEdgeId = `edge_${parentId}_${Date.now()}`;
+      const newEdge = {
+        id: newEdgeId,
+        source: parentId,
+        target: `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // 一時的なID
+        label: ''
+      };
+      
+      // 実際のノードIDで更新するために、少し後でもう一度処理
+      setTimeout(() => {
+        setHierarchyLevels(currentLevels => {
+          // 最新のノードを見つけて、エッジのターゲットを更新
+          const allNodes = currentLevels.flatMap(level => level.nodes);
+          const newestNode = allNodes[allNodes.length - 1];
+          if (newestNode && newestNode.parentId === parentId) {
+            setEdges(currentEdges => 
+              currentEdges.map(edge => 
+                edge.id === newEdgeId 
+                  ? { ...edge, target: newestNode.id }
+                  : edge
+              )
+            );
+          }
+          return currentLevels;
+        });
+      }, 100);
+      
+      console.log('新しいエッジを追加しました:', newEdge);
+      return [...prevEdges, newEdge];
     });
   }, []);
 
@@ -134,6 +187,11 @@ export const useHierarchicalTreeEditor = (initialTreeData = { nodes: [], hierarc
         for (let i = 0; i < newLevels.length; i++) {
           newLevels[i].nodes = newLevels[i].nodes.filter(n => n.id !== targetNodeId);
         }
+        
+        // 関連するエッジを削除
+        setEdges(prevEdges => prevEdges.filter(edge => 
+          edge.source !== targetNodeId && edge.target !== targetNodeId
+        ));
       };
       
       deleteNodeAndDescendants(nodeId);
@@ -177,6 +235,58 @@ export const useHierarchicalTreeEditor = (initialTreeData = { nodes: [], hierarc
     });
   }, []);
 
+  // ノードの色を更新
+  const updateNodeColor = useCallback((nodeId, newColor) => {
+    setHierarchyLevels(prevLevels => {
+      const newLevels = [...prevLevels];
+      
+      for (let i = 0; i < newLevels.length; i++) {
+        const nodeIndex = newLevels[i].nodes.findIndex(n => n.id === nodeId);
+        if (nodeIndex !== -1) {
+          newLevels[i].nodes[nodeIndex] = {
+            ...newLevels[i].nodes[nodeIndex],
+            color: newColor
+          };
+          break;
+        }
+      }
+      
+      return newLevels;
+    });
+  }, []);
+
+  // ノードのサイズを更新
+  const updateNodeSize = useCallback((nodeId, newSize) => {
+    const size = Math.min(Math.max(parseInt(newSize) || 50, 1), 100);
+    setHierarchyLevels(prevLevels => {
+      const newLevels = [...prevLevels];
+      
+      for (let i = 0; i < newLevels.length; i++) {
+        const nodeIndex = newLevels[i].nodes.findIndex(n => n.id === nodeId);
+        if (nodeIndex !== -1) {
+          newLevels[i].nodes[nodeIndex] = {
+            ...newLevels[i].nodes[nodeIndex],
+            size: size
+          };
+          break;
+        }
+      }
+      
+      return newLevels;
+    });
+  }, []);
+
+  // エッジのラベルを更新
+  const updateEdgeLabel = useCallback((edgeId, newLabel) => {
+    setEdges(prevEdges => 
+      prevEdges.map(edge => 
+        edge.id === edgeId 
+          ? { ...edge, label: newLabel }
+          : edge
+      )
+    );
+  }, []);
+
   // 階層名を更新
   const updateLevelName = useCallback((levelIndex, newName) => {
     setHierarchyLevels(prevLevels => {
@@ -208,12 +318,25 @@ export const useHierarchicalTreeEditor = (initialTreeData = { nodes: [], hierarc
   // ノードクリック処理
   const handleNodeClick = useCallback((node) => {
     setSelectedNode(selectedNode === node.id ? null : node.id);
+    setSelectedEdge(null); // ノード選択時はエッジ選択を解除
   }, [selectedNode]);
+
+  // エッジクリック処理
+  const handleEdgeClick = useCallback((edge) => {
+    setSelectedEdge(selectedEdge === edge.id ? null : edge.id);
+    setSelectedNode(null); // エッジ選択時はノード選択を解除
+  }, [selectedEdge]);
 
   // 編集開始
   const startEditing = useCallback((node) => {
     setEditingNode(node.id);
     setEditValue(node.label);
+  }, []);
+
+  // エッジ編集開始
+  const startEditingEdge = useCallback((edge) => {
+    setEditingEdge(edge.id);
+    setEdgeEditValue(edge.label || '');
   }, []);
 
   // 編集完了
@@ -225,45 +348,71 @@ export const useHierarchicalTreeEditor = (initialTreeData = { nodes: [], hierarc
     setEditValue('');
   }, [editingNode, editValue, updateNodeLabel]);
 
+  // エッジ編集完了
+  const finishEditingEdge = useCallback(() => {
+    if (editingEdge) {
+      updateEdgeLabel(editingEdge, edgeEditValue.trim());
+    }
+    setEditingEdge(null);
+    setEdgeEditValue('');
+  }, [editingEdge, edgeEditValue, updateEdgeLabel]);
+
   // 編集キャンセル
   const cancelEditing = useCallback(() => {
     setEditingNode(null);
     setEditValue('');
+    setEditingEdge(null);
+    setEdgeEditValue('');
   }, []);
 
   // キーボード処理
   const handleKeyPress = useCallback((e) => {
     if (e.key === 'Enter') {
-      finishEditing();
+      if (editingNode) {
+        finishEditing();
+      } else if (editingEdge) {
+        finishEditingEdge();
+      }
     } else if (e.key === 'Escape') {
       cancelEditing();
     }
-  }, [finishEditing, cancelEditing]);
+  }, [finishEditing, finishEditingEdge, cancelEditing, editingNode, editingEdge]);
 
   // 章にフォーカス
   const focusChapter = useCallback((node) => {
     onChapterFocus?.(node);
   }, [onChapterFocus]);
 
-  // hierarchyLevelsが変更された時にonChangeを呼び出す
+  // hierarchyLevelsまたはedgesが変更された時にonChangeを呼び出す
   useEffect(() => {
-    notifyChange(hierarchyLevels);
-  }, [hierarchyLevels, notifyChange]);
+    notifyChange(hierarchyLevels, edges);
+  }, [hierarchyLevels, edges, notifyChange]);
 
   return {
     hierarchyLevels,
+    edges,
     selectedNode,
+    selectedEdge,
     editingNode,
+    editingEdge,
     editValue,
+    edgeEditValue,
     setEditValue,
+    setEdgeEditValue,
     addChildNode,
     deleteNode,
     handleNodeClick,
+    handleEdgeClick,
     startEditing,
+    startEditingEdge,
     finishEditing,
+    finishEditingEdge,
     cancelEditing,
     handleKeyPress,
     updateLevelName,
+    updateNodeColor,
+    updateNodeSize,
+    updateEdgeLabel,
     toggleLevelCollapse,
     focusChapter
   };
@@ -283,7 +432,9 @@ export const useTreeEditor = (treeData, onChange) => {
       id: generateNodeId(),
       label: '新しいノード',
       x: Math.random() * 300 + 50,
-      y: Math.random() * 200 + 50
+      y: Math.random() * 200 + 50,
+      color: '#3B82F6',
+      size: 50
     };
 
     const newTreeData = {
