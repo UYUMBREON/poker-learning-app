@@ -70,9 +70,19 @@ export const COLOR_PALETTE = [
     return { isValid: true, error: null };
   };
   
-  // 樹形図ユーティリティ
-  export const generateNodeId = () => `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  export const generateEdgeId = (sourceId, targetId) => `edge_${sourceId}_${targetId}`;
+  // 樹形図ユーティリティ - より安全なID生成
+  export const generateNodeId = () => {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substr(2, 9);
+    const counter = generateNodeId.counter = (generateNodeId.counter || 0) + 1;
+    return `node_${timestamp}_${random}_${counter}`;
+  };
+
+  export const generateEdgeId = (sourceId, targetId) => {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substr(2, 5);
+    return `edge_${sourceId}_${targetId}_${timestamp}_${random}`;
+  };
   
   export const createDefaultTreeNode = (x = 100, y = 50) => ({
     id: generateNodeId(),
