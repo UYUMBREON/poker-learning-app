@@ -97,23 +97,107 @@ const TreeCanvas = ({
   onFocusChapter,
   onNodeClickScroll
 }) => {
-  // ノード位置を計算
+  // 改良されたノード位置計算（階層ごとに高さを統一）
   const calculateNodePositions = () => {
     const positions = {};
-    const levelSpacing = 120;
-    const nodeSpacing = 140;
+    const canvasWidth = 800;
+    const canvasHeight = 600;
+    const minDistance = 120; // ノード間の最小距離
+    const levelHeight = 130; // 各階層間の垂直距離
     
     hierarchyLevels.forEach((level, levelIndex) => {
-      const y = 80 + levelIndex * levelSpacing;
-      const totalWidth = level.nodes.length * nodeSpacing;
-      const startX = Math.max(60, (800 - totalWidth) / 2);
+      // 各階層の基準Y座標を計算
+      const baseY = 60 + levelIndex * levelHeight;
       
-      level.nodes.forEach((node, nodeIndex) => {
-        positions[node.id] = {
-          x: startX + nodeIndex * nodeSpacing,
-          y: y
-        };
-      });
+      if (levelIndex === 0) {
+        // 最初の階層（ルートノード）は中央上部に配置
+        level.nodes.forEach((node, nodeIndex) => {
+          positions[node.id] = {
+            x: canvasWidth / 2 - 40, // ノードサイズの半分を引いて中央揃え
+            y: baseY
+          };
+        });
+      } else {
+        // 親ノードごとにグループ化して配置
+        const parentGroups = {};
+        
+        // 親ノードごとに子ノードをグループ化
+        level.nodes.forEach(node => {
+          if (!parentGroups[node.parentId]) {
+            parentGroups[node.parentId] = [];
+          }
+          parentGroups[node.parentId].push(node);
+        });
+        
+        // 各親グループの子ノードを配置
+        Object.keys(parentGroups).forEach(parentId => {
+          const parentPos = positions[parentId];
+          if (!parentPos) return;
+          
+          const siblings = parentGroups[parentId];
+          const siblingCount = siblings.length;
+          
+          siblings.forEach((node, siblingIndex) => {
+            if (siblingCount === 1) {
+              // 子ノードが1つの場合は親の真下（同じX座標）に配置
+              positions[node.id] = {
+                x: parentPos.x,
+                y: baseY // 階層の基準高さに配置
+              };
+            } else {
+              // 複数の子ノードの場合は親を中心とした水平方向の放射状配置
+              const maxAngle = Math.min(35, 20 + siblingCount * 3); // 最大35度
+              const angleStep = siblingCount > 1 ? (maxAngle * 2) / (siblingCount - 1) : 0;
+              const startAngle = -maxAngle;
+              const angle = startAngle + (siblingIndex * angleStep);
+              
+              // 角度をラジアンに変換
+              const radians = (angle * Math.PI) / 180;
+              
+              // 水平距離を計算（垂直方向は階層の基準高さに固定）
+              let horizontalDistance = 140 + Math.max(0, (siblingCount - 2) * 20);
+              
+              // 新しい位置を計算（Y座標は階層の基準高さに固定）
+              let newX = parentPos.x + Math.sin(radians) * horizontalDistance;
+              let newY = baseY; // 階層の基準高さに固定
+              
+              // 水平方向の重複チェックと調整
+              let attempts = 0;
+              while (attempts < 10) {
+                let tooClose = false;
+                
+                // 同じ階層の既存のノードとの距離をチェック
+                for (const existingId in positions) {
+                  const existingPos = positions[existingId];
+                  // 同じ階層（同じY座標）のノードのみをチェック
+                  if (existingId !== node.id && Math.abs(existingPos.y - newY) < 20) {
+                    const distance = Math.abs(newX - existingPos.x);
+                    
+                    if (distance < minDistance) {
+                      tooClose = true;
+                      break;
+                    }
+                  }
+                }
+                
+                if (!tooClose) {
+                  break;
+                }
+                
+                // 重複している場合は水平距離を増やす
+                horizontalDistance += 25;
+                newX = parentPos.x + Math.sin(radians) * horizontalDistance;
+                attempts++;
+              }
+              
+              // キャンバス境界内に収める
+              newX = Math.max(50, Math.min(canvasWidth - 50, newX));
+              
+              positions[node.id] = { x: newX, y: newY };
+            }
+          });
+        });
+      }
     });
     
     return positions;
@@ -121,7 +205,7 @@ const TreeCanvas = ({
 
   const nodePositions = calculateNodePositions();
   
-  // 接続線を計算
+  // 接続線を計算（改良版）
   const calculateConnections = () => {
     const connections = [];
     
@@ -136,12 +220,26 @@ const TreeCanvas = ({
         const sourceSize = (sourceNode?.size || 50) * 0.8;
         const targetSize = (targetNode?.size || 50) * 0.8;
         
+        // ノードの中心から接続線を引く
+        const sourceCenterX = sourcePos.x + sourceSize / 2;
+        const sourceCenterY = sourcePos.y + sourceSize / 2;
+        const targetCenterX = targetPos.x + targetSize / 2;
+        const targetCenterY = targetPos.y + targetSize / 2;
+        
+        // ノードのエッジから接続線を開始/終了するように調整
+        const angle = Math.atan2(targetCenterY - sourceCenterY, targetCenterX - sourceCenterX);
+        
+        const fromX = sourceCenterX + Math.cos(angle) * (sourceSize / 2);
+        const fromY = sourceCenterY + Math.sin(angle) * (sourceSize / 2);
+        const toX = targetCenterX - Math.cos(angle) * (targetSize / 2);
+        const toY = targetCenterY - Math.sin(angle) * (targetSize / 2);
+        
         connections.push({
           ...edge,
-          from: { x: sourcePos.x + sourceSize / 2, y: sourcePos.y + sourceSize },
-          to: { x: targetPos.x + targetSize / 2, y: targetPos.y },
-          midX: (sourcePos.x + targetPos.x) / 2 + (sourceSize + targetSize) / 4,
-          midY: (sourcePos.y + targetPos.y) / 2 + sourceSize / 2
+          from: { x: fromX, y: fromY },
+          to: { x: toX, y: toY },
+          midX: (fromX + toX) / 2,
+          midY: (fromY + toY) / 2
         });
       }
     });
@@ -160,7 +258,7 @@ const TreeCanvas = ({
             key={index}
             level={level}
             levelIndex={index}
-            y={80 + index * 120}
+            y={60 + index * 130} // levelHeightに合わせて調整
             onUpdateLevelName={onUpdateLevelName}
           />
         ))}
@@ -380,8 +478,15 @@ const TreeNode = ({
             className="action-button add-button"
             onClick={(e) => {
               e.stopPropagation();
+              e.preventDefault();
               console.log('子ノード追加ボタンがクリックされました:', node.id);
+              // ボタンを一時的に無効化
+              e.target.disabled = true;
               onAddChild(node.id);
+              // 500ms後に再有効化
+              setTimeout(() => {
+                e.target.disabled = false;
+              }, 500);
             }}
             title="子要素を追加"
           >
@@ -441,8 +546,17 @@ const TreeNode = ({
               className="action-button delete-button"
               onClick={(e) => {
                 e.stopPropagation();
+                e.preventDefault();
                 console.log('ノード削除ボタンがクリックされました:', node.id);
-                onDeleteNode(node.id);
+                // 確認ダイアログ
+                if (window.confirm(`「${node.label}」を削除してもよろしいですか？`)) {
+                  // ボタンを一時的に無効化
+                  e.target.disabled = true;
+                  onDeleteNode(node.id);
+                  setTimeout(() => {
+                    if (e.target) e.target.disabled = false;
+                  }, 500);
+                }
               }}
               title="このノードを削除"
             >

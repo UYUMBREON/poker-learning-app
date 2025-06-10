@@ -2918,3 +2918,52 @@
   }
 }
 
+/* ノードのスムーズな移動アニメーション */
+.visual-tree-node {
+  position: absolute;
+  cursor: pointer;
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  z-index: 2;
+  animation: nodeAppear 0.3s ease-out;
+}
+
+.tree-viewer-node {
+  position: absolute;
+  z-index: 2;
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* 接続線のスムーズなアニメーション */
+.tree-svg line {
+  transition: all 0.3s ease;
+  stroke: #94a3b8;
+  stroke-width: 2;
+  opacity: 0.7;
+}
+
+/* 一時的に無効化されたボタンのスタイル */
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.action-button:disabled:hover {
+  transform: none !important;
+  background: inherit;
+  border-color: inherit;
+}
+
+/* アニメーション無効化対応 */
+@media (prefers-reduced-motion: reduce) {
+  .visual-tree-node,
+  .tree-viewer-node,
+  .node-circle,
+  .color-picker-panel,
+  .size-picker-panel,
+  .edge-editor-panel,
+  .tree-svg line {
+    animation: none;
+    transition: none;
+  }
+}
