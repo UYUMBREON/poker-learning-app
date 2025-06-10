@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // Markdownライブラリが利用できない場合の代替実装
 const MarkdownViewer = ({ content, className = "" }) => {
   const [collapsedSections, setCollapsedSections] = useState(new Set());
+  const navigate = useNavigate();
 
   // 見出しの展開・縮小を切り替える関数
   const toggleSection = (headingId) => {
@@ -132,7 +134,7 @@ const MarkdownViewer = ({ content, className = "" }) => {
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="markdown-strong">$1</strong>');
     html = html.replace(/\*(.*?)\*/g, '<em class="markdown-em">$1</em>');
     
-    // 7. リンクを処理（イベントハンドラーで外部リンクのみ処理）
+    // 7. リンクを処理（改善版）
     const links = [];
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
       const placeholder = `__LINK_${links.length}__`;
@@ -170,13 +172,23 @@ const MarkdownViewer = ({ content, className = "" }) => {
       html = html.replace(placeholder, `<code class="inline-code">${code}</code>`);
     });
     
-    // リンクを復元
+    // リンクを復元（改善版）
     links.forEach((link, index) => {
       const placeholder = `__LINK_${index}__`;
-      const isExternal = link.url.startsWith('http://') || link.url.startsWith('https://');
-      html = html.replace(placeholder, 
-        `<a href="${link.url}" class="markdown-link" ${isExternal ? 'target="_blank" rel="noopener noreferrer"' : ''}>${link.text}</a>`
-      );
+      const isExternal = link.url.startsWith('http://') || 
+                        link.url.startsWith('https://') || 
+                        link.url.startsWith('mailto:');
+      
+      if (isExternal) {
+        html = html.replace(placeholder, 
+          `<a href="${link.url}" class="markdown-link external-link" target="_blank" rel="noopener noreferrer">${link.text}</a>`
+        );
+      } else {
+        // 内部リンクの場合はdata属性を使用
+        html = html.replace(placeholder, 
+          `<a href="${link.url}" class="markdown-link internal-link" data-url="${link.url}">${link.text}</a>`
+        );
+      }
     });
     
     return html;
@@ -189,16 +201,9 @@ const MarkdownViewer = ({ content, className = "" }) => {
       return;
     }
 
-    // classNameが空の場合はmarkdown-viewerクラスで検索
-    const selectorClass = className.trim() || 'markdown-viewer';
-    const cleanSelector = selectorClass.replace(/\s+/g, '.');
-    
-    // セレクターが空でないことを確認
-    if (!cleanSelector) {
-      return;
-    }
-
-    const viewer = document.querySelector(`.${cleanSelector}`);
+    // 適切なセレクターを構築
+    const viewerSelector = className ? `.${className.split(' ').join('.')}` : '.markdown-viewer';
+    const viewer = document.querySelector(viewerSelector);
     if (!viewer) return;
 
     const headings = viewer.querySelectorAll('.collapsible-heading');
@@ -240,27 +245,47 @@ const MarkdownViewer = ({ content, className = "" }) => {
 
   // リンククリック時とヘッダークリック時の処理
   const handleClick = (e) => {
-    const target = e.target.closest('.collapsible-heading') || e.target;
-    
     // 見出しクリック時の処理
-    if (target.classList.contains('collapsible-heading') || target.closest('.collapsible-heading')) {
-      const heading = target.classList.contains('collapsible-heading') ? target : target.closest('.collapsible-heading');
-      const headingId = heading.getAttribute('data-heading-id');
+    const headingElement = e.target.closest('.collapsible-heading');
+    if (headingElement) {
+      e.preventDefault();
+      const headingId = headingElement.getAttribute('data-heading-id');
       toggleSection(headingId);
       return;
     }
     
     // リンククリック時の処理
-    if (target.tagName === 'A' && target.classList.contains('markdown-link')) {
-      const href = target.getAttribute('href');
-      // 外部リンクまたは絶対URLの場合のみデフォルト動作を許可
-      if (href && (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:'))) {
-        // デフォルト動作を許可（新しいタブで開く）
+    const linkElement = e.target.closest('.markdown-link');
+    if (linkElement) {
+      const href = linkElement.getAttribute('href');
+      
+      // 外部リンクの場合はデフォルト動作を許可
+      if (linkElement.classList.contains('external-link')) {
+        // 外部リンクはデフォルト動作（新しいタブで開く）
         return;
       }
-      // 内部リンクの場合はイベントを停止（Reactルーターに干渉しないように）
+      
+      // 内部リンクの場合
+      if (linkElement.classList.contains('internal-link')) {
+        e.preventDefault();
+        
+        // 絶対パスの場合
+        if (href.startsWith('/')) {
+          navigate(href);
+          return;
+        }
+        
+        // 相対パスの場合は現在のパスからの相対で処理
+        // 現在のパスを取得してリンクを解決
+        const currentPath = window.location.pathname;
+        const resolvedPath = new URL(href, `${window.location.origin}${currentPath}`).pathname;
+        navigate(resolvedPath);
+        return;
+      }
+      
+      // その他のリンクの場合は警告を表示
       e.preventDefault();
-      console.warn('相対リンクは現在サポートされていません:', href);
+      console.warn('未対応のリンク形式:', href);
     }
   };
 
