@@ -31,23 +31,107 @@ const TreeViewer = ({ treeData, onNodeClickScroll }) => {
 };
 
 const HierarchicalTreeViewer = ({ hierarchyLevels, onNodeClickScroll }) => {
-  // ノード位置を計算
+  // 改良されたノード位置計算（階層ごとに高さを統一）
   const calculateNodePositions = () => {
     const positions = {};
-    const levelSpacing = 120; // 階層間の垂直間隔
-    const nodeSpacing = 140; // 同一階層内の水平間隔
+    const canvasWidth = 800;
+    const canvasHeight = 500;
+    const minDistance = 120; // ノード間の最小距離
+    const levelHeight = 130; // 各階層間の垂直距離
     
     hierarchyLevels.forEach((level, levelIndex) => {
-      const y = 80 + levelIndex * levelSpacing;
-      const totalWidth = level.nodes.length * nodeSpacing;
-      const startX = Math.max(60, (800 - totalWidth) / 2); // 中央寄せ
+      // 各階層の基準Y座標を計算
+      const baseY = 60 + levelIndex * levelHeight;
       
-      level.nodes.forEach((node, nodeIndex) => {
-        positions[node.id] = {
-          x: startX + nodeIndex * nodeSpacing,
-          y: y
-        };
-      });
+      if (levelIndex === 0) {
+        // 最初の階層（ルートノード）は中央上部に配置
+        level.nodes.forEach((node, nodeIndex) => {
+          positions[node.id] = {
+            x: canvasWidth / 2 - 40, // ノードサイズの半分を引いて中央揃え
+            y: baseY
+          };
+        });
+      } else {
+        // 親ノードごとにグループ化して配置
+        const parentGroups = {};
+        
+        // 親ノードごとに子ノードをグループ化
+        level.nodes.forEach(node => {
+          if (!parentGroups[node.parentId]) {
+            parentGroups[node.parentId] = [];
+          }
+          parentGroups[node.parentId].push(node);
+        });
+        
+        // 各親グループの子ノードを配置
+        Object.keys(parentGroups).forEach(parentId => {
+          const parentPos = positions[parentId];
+          if (!parentPos) return;
+          
+          const siblings = parentGroups[parentId];
+          const siblingCount = siblings.length;
+          
+          siblings.forEach((node, siblingIndex) => {
+            if (siblingCount === 1) {
+              // 子ノードが1つの場合は親の真下（同じX座標）に配置
+              positions[node.id] = {
+                x: parentPos.x,
+                y: baseY // 階層の基準高さに配置
+              };
+            } else {
+              // 複数の子ノードの場合は親を中心とした水平方向の放射状配置
+              const maxAngle = Math.min(35, 20 + siblingCount * 3); // 最大35度
+              const angleStep = siblingCount > 1 ? (maxAngle * 2) / (siblingCount - 1) : 0;
+              const startAngle = -maxAngle;
+              const angle = startAngle + (siblingIndex * angleStep);
+              
+              // 角度をラジアンに変換
+              const radians = (angle * Math.PI) / 180;
+              
+              // 水平距離を計算（垂直方向は階層の基準高さに固定）
+              let horizontalDistance = 140 + Math.max(0, (siblingCount - 2) * 20);
+              
+              // 新しい位置を計算（Y座標は階層の基準高さに固定）
+              let newX = parentPos.x + Math.sin(radians) * horizontalDistance;
+              let newY = baseY; // 階層の基準高さに固定
+              
+              // 水平方向の重複チェックと調整
+              let attempts = 0;
+              while (attempts < 10) {
+                let tooClose = false;
+                
+                // 同じ階層の既存のノードとの距離をチェック
+                for (const existingId in positions) {
+                  const existingPos = positions[existingId];
+                  // 同じ階層（同じY座標）のノードのみをチェック
+                  if (existingId !== node.id && Math.abs(existingPos.y - newY) < 20) {
+                    const distance = Math.abs(newX - existingPos.x);
+                    
+                    if (distance < minDistance) {
+                      tooClose = true;
+                      break;
+                    }
+                  }
+                }
+                
+                if (!tooClose) {
+                  break;
+                }
+                
+                // 重複している場合は水平距離を増やす
+                horizontalDistance += 25;
+                newX = parentPos.x + Math.sin(radians) * horizontalDistance;
+                attempts++;
+              }
+              
+              // キャンバス境界内に収める
+              newX = Math.max(50, Math.min(canvasWidth - 50, newX));
+              
+              positions[node.id] = { x: newX, y: newY };
+            }
+          });
+        });
+      }
     });
     
     return positions;
@@ -55,7 +139,7 @@ const HierarchicalTreeViewer = ({ hierarchyLevels, onNodeClickScroll }) => {
 
   const nodePositions = calculateNodePositions();
   
-  // 接続線を計算
+  // 接続線を計算（改良版）
   const calculateConnections = () => {
     const connections = [];
     
@@ -64,11 +148,26 @@ const HierarchicalTreeViewer = ({ hierarchyLevels, onNodeClickScroll }) => {
       
       level.nodes.forEach(node => {
         if (node.parentId && nodePositions[node.parentId] && nodePositions[node.id]) {
-          const parent = nodePositions[node.parentId];
-          const child = nodePositions[node.id];
+          const parentPos = nodePositions[node.parentId];
+          const childPos = nodePositions[node.id];
+          
+          // ノードの中心から接続線を引く
+          const parentCenterX = parentPos.x + 40;
+          const parentCenterY = parentPos.y + 40;
+          const childCenterX = childPos.x + 40;
+          const childCenterY = childPos.y + 40;
+          
+          // ノードのエッジから接続線を開始/終了するように調整
+          const angle = Math.atan2(childCenterY - parentCenterY, childCenterX - parentCenterX);
+          
+          const fromX = parentCenterX + Math.cos(angle) * 40;
+          const fromY = parentCenterY + Math.sin(angle) * 40;
+          const toX = childCenterX - Math.cos(angle) * 40;
+          const toY = childCenterY - Math.sin(angle) * 40;
+          
           connections.push({
-            from: { x: parent.x + 40, y: parent.y + 40 },
-            to: { x: child.x + 40, y: child.y }
+            from: { x: fromX, y: fromY },
+            to: { x: toX, y: toY }
           });
         }
       });
@@ -87,7 +186,7 @@ const HierarchicalTreeViewer = ({ hierarchyLevels, onNodeClickScroll }) => {
           <div 
             key={index}
             className="level-label readonly" 
-            style={{ top: `${80 + index * 120 + 10}px` }}
+            style={{ top: `${60 + index * 130 + 10}px` }} // levelHeightに合わせて調整
           >
             <span className="level-label-text">
               {level.name}
@@ -140,19 +239,39 @@ const TreeViewerNode = ({ node, levelIndex, position, onNodeClickScroll }) => {
     }
   };
 
+  const nodeSize = (node.size || 50) * 0.8; // ノードサイズを動的に調整
+
   return (
     <div
       className={`tree-viewer-node level-${levelIndex} ${onNodeClickScroll ? 'clickable' : ''}`}
       style={{
         left: `${position.x}px`,
-        top: `${position.y}px`
+        top: `${position.y}px`,
+        width: `${nodeSize}px`,
+        height: `${nodeSize}px`
       }}
       onClick={onNodeClickScroll ? handleClick : undefined}
       title={onNodeClickScroll ? `「${node.label}」の見出しにスクロール` : undefined}
     >
-      <div className="node-circle">
+      <div 
+        className="node-circle"
+        style={{
+          width: `${nodeSize}px`,
+          height: `${nodeSize}px`,
+          backgroundColor: node.color || '#3B82F6',
+          borderColor: node.color || '#3B82F6'
+        }}
+      >
         <div className="node-content">
-          <span className="node-text">{node.label}</span>
+          <span 
+            className="node-text"
+            style={{
+              fontSize: `${Math.max(10, nodeSize / 6)}px`,
+              maxWidth: `${nodeSize - 16}px`
+            }}
+          >
+            {node.label}
+          </span>
         </div>
       </div>
       
