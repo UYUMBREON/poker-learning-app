@@ -1,23 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // Markdownライブラリが利用できない場合の代替実装
 const MarkdownViewer = ({ content, className = "" }) => {
-  const [collapsedSections, setCollapsedSections] = useState(new Set());
   const navigate = useNavigate();
-
-  // 見出しの展開・縮小を切り替える関数
-  const toggleSection = (headingId) => {
-    setCollapsedSections(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(headingId)) {
-        newSet.delete(headingId);
-      } else {
-        newSet.add(headingId);
-      }
-      return newSet;
-    });
-  };
 
   // 拡張Markdownパーサー
   const parseMarkdown = (text) => {
@@ -47,73 +33,36 @@ const MarkdownViewer = ({ content, className = "" }) => {
       return placeholder;
     });
     
-    // 3. 見出しを処理（段落処理の前に）- 展開・縮小機能付き
-    let headingCounter = 0;
+    // 3. 見出しを処理（段落処理の前に）- 自動フォントサイズのみ
+    
+    // H6: +2pt (基本サイズ 16px + 2pt ≈ 19px)
     html = html.replace(/^#{6}\s+(.*$)/gm, (match, title) => {
-      const headingId = `heading-${headingCounter++}`;
-      return `<h6 class="markdown-h6 collapsible-heading" data-heading-id="${headingId}" data-level="6">
-        <span class="heading-toggle">
-          <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9,18 15,12 9,6"></polyline>
-          </svg>
-        </span>
-        <span class="heading-text">${title}</span>
-      </h6>`;
+      return `<h6 class="markdown-h6" style="font-size: 1.1875rem !important; font-weight: 600 !important; color: #64748b; margin: 1em 0 0.5em 0; line-height: 1.4;">${title}</h6>`;
     });
+    
+    // H5: +4pt (基本サイズ 16px + 4pt ≈ 21px)
     html = html.replace(/^#{5}\s+(.*$)/gm, (match, title) => {
-      const headingId = `heading-${headingCounter++}`;
-      return `<h5 class="markdown-h5 collapsible-heading" data-heading-id="${headingId}" data-level="5">
-        <span class="heading-toggle">
-          <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9,18 15,12 9,6"></polyline>
-          </svg>
-        </span>
-        <span class="heading-text">${title}</span>
-      </h5>`;
+      return `<h5 class="markdown-h5" style="font-size: 1.3125rem !important; font-weight: 650 !important; color: #64748b; margin: 1em 0 0.5em 0; line-height: 1.4;">${title}</h5>`;
     });
+    
+    // H4: +6pt (基本サイズ 16px + 6pt ≈ 24px)
     html = html.replace(/^#{4}\s+(.*$)/gm, (match, title) => {
-      const headingId = `heading-${headingCounter++}`;
-      return `<h4 class="markdown-h4 collapsible-heading" data-heading-id="${headingId}" data-level="4">
-        <span class="heading-toggle">
-          <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9,18 15,12 9,6"></polyline>
-          </svg>
-        </span>
-        <span class="heading-text">${title}</span>
-      </h4>`;
+      return `<h4 class="markdown-h4" style="font-size: 1.5rem !important; font-weight: 650 !important; color: #64748b; margin: 1.25em 0 0.75em 0; line-height: 1.4;">${title}</h4>`;
     });
+    
+    // H3: +8pt (基本サイズ 16px + 8pt ≈ 27px)
     html = html.replace(/^#{3}\s+(.*$)/gm, (match, title) => {
-      const headingId = `heading-${headingCounter++}`;
-      return `<h3 class="markdown-h3 collapsible-heading" data-heading-id="${headingId}" data-level="3">
-        <span class="heading-toggle">
-          <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9,18 15,12 9,6"></polyline>
-          </svg>
-        </span>
-        <span class="heading-text">${title}</span>
-      </h3>`;
+      return `<h3 class="markdown-h3" style="font-size: 1.6875rem !important; font-weight: 700 !important; color: #475569; margin: 1.5em 0 1em 0; line-height: 1.3;">${title}</h3>`;
     });
+    
+    // H2: +10pt (基本サイズ 16px + 10pt ≈ 30px)
     html = html.replace(/^#{2}\s+(.*$)/gm, (match, title) => {
-      const headingId = `heading-${headingCounter++}`;
-      return `<h2 class="markdown-h2 collapsible-heading" data-heading-id="${headingId}" data-level="2">
-        <span class="heading-toggle">
-          <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9,18 15,12 9,6"></polyline>
-          </svg>
-        </span>
-        <span class="heading-text">${title}</span>
-      </h2>`;
+      return `<h2 class="markdown-h2" style="font-size: 1.875rem !important; font-weight: 700 !important; color: #334155; margin: 2em 0 1.25em 0; padding-bottom: 0.3em; border-bottom: 2px solid #e2e8f0; line-height: 1.3;">${title}</h2>`;
     });
+    
+    // H1: +12pt (基本サイズ 16px + 12pt ≈ 32px)
     html = html.replace(/^#{1}\s+(.*$)/gm, (match, title) => {
-      const headingId = `heading-${headingCounter++}`;
-      return `<h1 class="markdown-h1 collapsible-heading" data-heading-id="${headingId}" data-level="1">
-        <span class="heading-toggle">
-          <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9,18 15,12 9,6"></polyline>
-          </svg>
-        </span>
-        <span class="heading-text">${title}</span>
-      </h1>`;
+      return `<h1 class="markdown-h1" style="font-size: 2rem !important; font-weight: 800 !important; color: #1e293b; margin: 2.5em 0 1.5em 0; padding-bottom: 0.5em; border-bottom: 3px solid #3b82f6; line-height: 1.2;">${title}</h1>`;
     });
     
     // 4. 引用を処理
@@ -146,16 +95,58 @@ const MarkdownViewer = ({ content, className = "" }) => {
     html = html.replace(/^---+$/gm, '<hr class="markdown-divider">');
     
     // 9. 段落を処理（最後に）
-    // 二重改行で段落分割
-    const paragraphs = html.split(/\n\s*\n/).filter(p => p.trim());
-    html = paragraphs.map(paragraph => {
-      const trimmed = paragraph.trim();
-      // 既にHTMLタグで始まっている場合は段落タグで囲まない
-      if (trimmed.match(/^<(h[1-6]|blockquote|ul|ol|hr|pre)/)) {
-        return trimmed.replace(/\n/g, ' ');
+    // 改行の処理を改善
+    const lines = html.split('\n');
+    const processedLines = [];
+    let currentParagraph = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmedLine = line.trim();
+      
+      // 空行の場合
+      if (trimmedLine === '') {
+        // 現在の段落がある場合は処理して追加
+        if (currentParagraph.length > 0) {
+          const paragraphText = currentParagraph.join('<br>');
+          // HTMLタグで始まっている場合は段落タグで囲まない
+          if (paragraphText.match(/^<(h[1-6]|blockquote|ul|ol|hr|pre)/)) {
+            processedLines.push(paragraphText);
+          } else {
+            processedLines.push(`<div class="markdown-content">${paragraphText}</div>`);
+          }
+          currentParagraph = [];
+        }
+        // 空の段落を追加（段落間のスペース）
+        processedLines.push('<div class="markdown-content">&nbsp;</div>');
+      } else {
+        // HTMLタグで始まっている行の場合はそのまま追加
+        if (trimmedLine.match(/^<(h[1-6]|blockquote|ul|ol|hr|pre)/)) {
+          // 現在の段落がある場合は先に処理
+          if (currentParagraph.length > 0) {
+            const paragraphText = currentParagraph.join('<br>');
+            processedLines.push(`<div class="markdown-content">${paragraphText}</div>`);
+            currentParagraph = [];
+          }
+          processedLines.push(trimmedLine);
+        } else {
+          // 通常のテキスト行は現在の段落に追加
+          currentParagraph.push(trimmedLine);
+        }
       }
-      return `<div class="markdown-content">${trimmed.replace(/\n/g, '<br>')}</div>`;
-    }).join('');
+    }
+    
+    // 最後の段落を処理
+    if (currentParagraph.length > 0) {
+      const paragraphText = currentParagraph.join('<br>');
+      if (paragraphText.match(/^<(h[1-6]|blockquote|ul|ol|hr|pre)/)) {
+        processedLines.push(paragraphText);
+      } else {
+        processedLines.push(`<div class="markdown-content">${paragraphText}</div>`);
+      }
+    }
+    
+    html = processedLines.join('');
     
     // 10. プレースホルダーを実際のコンテンツに置換
     // コードブロックを復元
@@ -194,66 +185,8 @@ const MarkdownViewer = ({ content, className = "" }) => {
     return html;
   };
 
-  // セクション構造を解析してDOM操作で展開・縮小を制御
-  useEffect(() => {
-    // コンテンツが空の場合は何もしない
-    if (!content || !content.trim()) {
-      return;
-    }
-
-    // 適切なセレクターを構築
-    const viewerSelector = className ? `.${className.split(' ').join('.')}` : '.markdown-viewer';
-    const viewer = document.querySelector(viewerSelector);
-    if (!viewer) return;
-
-    const headings = viewer.querySelectorAll('.collapsible-heading');
-    
-    headings.forEach(heading => {
-      const headingId = heading.getAttribute('data-heading-id');
-      const level = parseInt(heading.getAttribute('data-level'));
-      const chevron = heading.querySelector('.chevron-icon');
-      
-      // セクションが縮小されているかチェック
-      const isCollapsed = collapsedSections.has(headingId);
-      
-      // シェブロンの向きを更新
-      if (chevron) {
-        chevron.style.transform = isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)';
-      }
-      
-      // 次の要素から次の同レベル以上の見出しまでを取得
-      let nextElement = heading.nextElementSibling;
-      const elementsToToggle = [];
-      
-      while (nextElement) {
-        if (nextElement.classList.contains('collapsible-heading')) {
-          const nextLevel = parseInt(nextElement.getAttribute('data-level'));
-          if (nextLevel <= level) {
-            break; // 同レベル以上の見出しに達したら終了
-          }
-        }
-        elementsToToggle.push(nextElement);
-        nextElement = nextElement.nextElementSibling;
-      }
-      
-      // 要素の表示・非表示を制御
-      elementsToToggle.forEach(element => {
-        element.style.display = isCollapsed ? 'none' : '';
-      });
-    });
-  }, [collapsedSections, className, content]);
-
-  // リンククリック時とヘッダークリック時の処理
+  // リンククリック時の処理
   const handleClick = (e) => {
-    // 見出しクリック時の処理
-    const headingElement = e.target.closest('.collapsible-heading');
-    if (headingElement) {
-      e.preventDefault();
-      const headingId = headingElement.getAttribute('data-heading-id');
-      toggleSection(headingId);
-      return;
-    }
-    
     // リンククリック時の処理
     const linkElement = e.target.closest('.markdown-link');
     if (linkElement) {
@@ -261,7 +194,6 @@ const MarkdownViewer = ({ content, className = "" }) => {
       
       // 外部リンクの場合はデフォルト動作を許可
       if (linkElement.classList.contains('external-link')) {
-        // 外部リンクはデフォルト動作（新しいタブで開く）
         return;
       }
       
@@ -269,21 +201,21 @@ const MarkdownViewer = ({ content, className = "" }) => {
       if (linkElement.classList.contains('internal-link')) {
         e.preventDefault();
         
-        // 絶対パスの場合
         if (href.startsWith('/')) {
           navigate(href);
           return;
         }
         
-        // 相対パスの場合は現在のパスからの相対で処理
-        // 現在のパスを取得してリンクを解決
-        const currentPath = window.location.pathname;
-        const resolvedPath = new URL(href, `${window.location.origin}${currentPath}`).pathname;
-        navigate(resolvedPath);
+        try {
+          const currentPath = window.location.pathname;
+          const resolvedPath = new URL(href, `${window.location.origin}${currentPath}`).pathname;
+          navigate(resolvedPath);
+        } catch (error) {
+          console.warn('リンクの解決に失敗:', href, error);
+        }
         return;
       }
       
-      // その他のリンクの場合は警告を表示
       e.preventDefault();
       console.warn('未対応のリンク形式:', href);
     }
