@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Plus, Home, Table, Tag } from 'lucide-react';
+import { BookOpen, Home, Table, Tag } from 'lucide-react';
 
 const Header = () => {
   return (
@@ -22,10 +22,6 @@ const Header = () => {
           <Link to="/tags">
             <Tag size={16} style={{ display: 'inline', marginRight: '6px' }} />
             タグ管理
-          </Link>
-          <Link to="/page/new">
-            <Plus size={16} style={{ display: 'inline', marginRight: '6px' }} />
-            新規作成
           </Link>
         </nav>
       </div>
