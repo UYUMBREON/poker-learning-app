@@ -2220,3 +2220,701 @@
       transition: none;
     }
   }
+
+  /* =================================
+   閲覧モード用スタイル追加
+   ================================= */
+
+/* クリック可能なノードのスタイル */
+.tree-viewer-node.clickable,
+.legacy-tree-node.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tree-viewer-node.clickable:hover,
+.legacy-tree-node.clickable:hover {
+  transform: translateY(-2px) scale(1.05);
+}
+
+.tree-viewer-node.clickable:hover .node-circle,
+.legacy-tree-node.clickable:hover .node-circle {
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+  border-width: 4px;
+}
+
+.tree-viewer-node.clickable:active,
+.legacy-tree-node.clickable:active {
+  transform: translateY(0) scale(1.02);
+}
+
+/* 閲覧モード用のノードインジケーター */
+.viewer-node-indicator {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 10px;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.tree-viewer-node.clickable:hover .viewer-node-indicator,
+.legacy-tree-node.clickable:hover .viewer-node-indicator {
+  opacity: 1;
+}
+
+/* 閲覧モード用のノードホバー効果の強化 */
+.tree-viewer-node.clickable .node-text,
+.legacy-tree-node.clickable .node-text {
+  transition: color 0.2s ease;
+}
+
+.tree-viewer-node.clickable:hover .node-text,
+.legacy-tree-node.clickable:hover .node-text {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+/* レベル別のホバー効果 */
+.tree-viewer-node.level-0.clickable:hover .node-circle {
+  border-color: #1d4ed8;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+}
+
+.tree-viewer-node.level-1.clickable:hover .node-circle {
+  border-color: #059669;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+}
+
+.tree-viewer-node.level-2.clickable:hover .node-circle {
+  border-color: #d97706;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+}
+
+.tree-viewer-node.level-3.clickable:hover .node-circle {
+  border-color: #dc2626;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+}
+
+.tree-viewer-node.level-4.clickable:hover .node-circle {
+  border-color: #7c3aed;
+  background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+}
+
+/* ツールチップ風のスタイル */
+.tree-viewer-node.clickable[title]:hover::after,
+.legacy-tree-node.clickable[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* スクロール成功時のアニメーション */
+@keyframes scrollSuccess {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.tree-viewer-node.clickable:active,
+.legacy-tree-node.clickable:active {
+  animation: scrollSuccess 0.3s ease;
+}
+
+/* 閲覧モード専用のノードスタイル強化 */
+.tree-viewer-node.clickable .node-circle {
+  position: relative;
+  overflow: visible;
+}
+
+.tree-viewer-node.clickable .node-circle::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  transition: border-color 0.2s ease;
+}
+
+.tree-viewer-node.clickable:hover .node-circle::before {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* モバイル対応 */
+@media (max-width: 768px) {
+  .viewer-node-indicator {
+    width: 16px;
+    height: 16px;
+    top: -6px;
+    right: -6px;
+    font-size: 8px;
+  }
+  
+  .tree-viewer-node.clickable:hover::after,
+  .legacy-tree-node.clickable:hover::after {
+    font-size: 0.625rem;
+    padding: 2px 6px;
+    bottom: -30px;
+  }
+  
+  /* モバイルでのタッチフィードバック */
+  .tree-viewer-node.clickable:active,
+  .legacy-tree-node.clickable:active {
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 50%;
+  }
+}
+
+/* アクセシビリティ対応 */
+@media (prefers-reduced-motion: reduce) {
+  .tree-viewer-node.clickable,
+  .legacy-tree-node.clickable,
+  .viewer-node-indicator {
+    transition: none;
+    animation: none;
+  }
+  
+  .tree-viewer-node.clickable:hover,
+  .legacy-tree-node.clickable:hover {
+    transform: none;
+  }
+}
+
+/* =================================
+   拡張TreeEditor用スタイル追加
+   ================================= */
+
+/* 動的ノードサイズ対応 */
+.visual-tree-node {
+  transition: all 0.3s ease;
+}
+
+.visual-tree-node .node-circle {
+  transition: all 0.3s ease;
+  border-width: 3px;
+}
+
+.visual-tree-node.selected .node-circle {
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+  transform: scale(1.05);
+}
+
+/* ノードアクションボタンの右側配置 */
+.node-actions-right {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e2e8f0;
+}
+
+/* 従来のnode-actionsスタイルを非表示 */
+.node-actions {
+  display: none;
+}
+
+.color-button {
+  color: #8b5cf6;
+  border-color: #a855f7;
+}
+
+.color-button:hover {
+  background: #faf5ff;
+  border-color: #8b5cf6;
+  transform: scale(1.1);
+}
+
+.size-button {
+  color: #059669;
+  border-color: #10b981;
+}
+
+.size-button:hover {
+  background: #f0fdf4;
+  border-color: #059669;
+  transform: scale(1.1);
+}
+
+/* 右側配置のカラーピッカー */
+.color-picker-panel-right {
+  position: absolute;
+  left: calc(100% + 60px);
+  top: 0;
+  width: 180px;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: fadeInScale 0.2s ease-out;
+}
+
+/* 右側配置のサイズピッカー */
+.size-picker-panel-right {
+  position: absolute;
+  left: calc(100% + 60px);
+  top: 0;
+  width: 200px;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: fadeInScale 0.2s ease-out;
+}
+
+/* 従来のピッカーパネルスタイルを非表示 */
+.color-picker-panel,
+.size-picker-panel {
+  display: none;
+}
+
+.color-picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 6px 6px 0 0;
+}
+
+.color-picker-header span {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.close-picker {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.close-picker:hover {
+  background: #e5e7eb;
+}
+
+.color-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 12px;
+}
+
+.color-options .color-option {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.color-options .color-option:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.color-options .color-option.selected {
+  border-color: #1f2937;
+  transform: scale(1.1);
+  box-shadow: 0 0 0 2px white, 0 0 0 4px #3b82f6;
+}
+
+/* サイズピッカーパネル */
+.size-picker-panel {
+  position: absolute;
+  top: -10px;
+  right: -180px;
+  width: 200px;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: fadeInScale 0.2s ease-out;
+}
+
+.size-picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 6px 6px 0 0;
+}
+
+.size-picker-header span {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.size-controls {
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.size-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #e2e8f0;
+  outline: none;
+  transition: background 0.3s;
+}
+
+.size-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s;
+}
+
+.size-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  background: #2563eb;
+}
+
+.size-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.size-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.size-preview {
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #64748b;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  border-radius: 0 0 6px 6px;
+}
+
+/* エッジ編集パネル */
+.edge-editor-panel {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 300px;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.edge-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 6px 6px 0 0;
+}
+
+.edge-editor-header span {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.close-editor {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.close-editor:hover {
+  background: #e5e7eb;
+}
+
+.edge-editor-content {
+  padding: 16px;
+}
+
+.edge-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.edge-label-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+}
+
+.edge-label-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.edge-edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.save-edge-button {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.save-edge-button:hover {
+  background: #059669;
+}
+
+.cancel-edge-button {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancel-edge-button:hover {
+  background: #4b5563;
+}
+
+.edge-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.edge-info {
+  flex: 1;
+}
+
+.edge-label {
+  font-size: 0.875rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+.edit-edge-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.edit-edge-button:hover {
+  background: #2563eb;
+}
+
+/* エッジのスタイル強化 */
+.tree-svg line {
+  transition: all 0.2s ease;
+}
+
+.tree-svg line:hover {
+  stroke-width: 3;
+  stroke: #f59e0b;
+}
+
+.tree-svg text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 500;
+  pointer-events: all;
+  transition: all 0.2s ease;
+}
+
+.tree-svg text:hover {
+  fill: #f59e0b;
+  font-weight: 600;
+}
+
+/* アニメーション */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .color-picker-panel {
+    right: -120px;
+    width: 150px;
+  }
+  
+  .color-options {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 8px;
+  }
+  
+  .color-options .color-option {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .size-picker-panel {
+    right: -140px;
+    width: 160px;
+  }
+  
+  .edge-editor-panel {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+  }
+  
+  .node-actions-right {
+    left: calc(100% + 5px);
+    padding: 6px;
+    gap: 4px;
+  }
+  
+  .action-button {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+  /* モバイルでピッカーが画面外に出る場合の対応 */
+  .color-picker-panel-right,
+  .size-picker-panel-right {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2000;
+  }
+
+/* 高コントラストモード対応 */
+@media (prefers-contrast: high) {
+  .color-picker-panel,
+  .size-picker-panel,
+  .edge-editor-panel {
+    border-width: 3px;
+    border-color: #000;
+  }
+  
+  .color-options .color-option {
+    border-width: 3px;
+  }
+  
+  .tree-svg line {
+    stroke-width: 3;
+  }
+}
+
+/* アニメーション無効化対応 */
+@media (prefers-reduced-motion: reduce) {
+  .visual-tree-node,
+  .node-circle,
+  .color-picker-panel,
+  .size-picker-panel,
+  .edge-editor-panel {
+    animation: none;
+    transition: none;
+  }
+}
+

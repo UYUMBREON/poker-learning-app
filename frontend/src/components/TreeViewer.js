@@ -1,14 +1,26 @@
 import React from 'react';
+import { BookOpen } from 'lucide-react';
 
-const TreeViewer = ({ treeData }) => {
+const TreeViewer = ({ treeData, onNodeClickScroll }) => {
   // 階層型データの場合
   if (treeData.hierarchyLevels && treeData.hierarchyLevels.length > 0) {
-    return <HierarchicalTreeViewer hierarchyLevels={treeData.hierarchyLevels} />;
+    return (
+      <HierarchicalTreeViewer 
+        hierarchyLevels={treeData.hierarchyLevels} 
+        onNodeClickScroll={onNodeClickScroll}
+      />
+    );
   }
   
   // 従来型ノードデータの場合
   if (treeData.nodes && treeData.nodes.length > 0) {
-    return <LegacyTreeViewer nodes={treeData.nodes} edges={treeData.edges} />;
+    return (
+      <LegacyTreeViewer 
+        nodes={treeData.nodes} 
+        edges={treeData.edges}
+        onNodeClickScroll={onNodeClickScroll}
+      />
+    );
   }
 
   return (
@@ -18,7 +30,7 @@ const TreeViewer = ({ treeData }) => {
   );
 };
 
-const HierarchicalTreeViewer = ({ hierarchyLevels }) => {
+const HierarchicalTreeViewer = ({ hierarchyLevels, onNodeClickScroll }) => {
   // ノード位置を計算
   const calculateNodePositions = () => {
     const positions = {};
@@ -109,6 +121,7 @@ const HierarchicalTreeViewer = ({ hierarchyLevels }) => {
               node={node}
               levelIndex={levelIndex}
               position={nodePositions[node.id]}
+              onNodeClickScroll={onNodeClickScroll}
             />
           ))
         )}
@@ -117,27 +130,43 @@ const HierarchicalTreeViewer = ({ hierarchyLevels }) => {
   );
 };
 
-const TreeViewerNode = ({ node, levelIndex, position }) => {
+const TreeViewerNode = ({ node, levelIndex, position, onNodeClickScroll }) => {
   if (!position) return null;
+
+  const handleClick = () => {
+    if (onNodeClickScroll) {
+      console.log('TreeViewerNode clicked:', node.label);
+      onNodeClickScroll(node);
+    }
+  };
 
   return (
     <div
-      className={`tree-viewer-node level-${levelIndex}`}
+      className={`tree-viewer-node level-${levelIndex} ${onNodeClickScroll ? 'clickable' : ''}`}
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`
       }}
+      onClick={onNodeClickScroll ? handleClick : undefined}
+      title={onNodeClickScroll ? `「${node.label}」の見出しにスクロール` : undefined}
     >
       <div className="node-circle">
         <div className="node-content">
           <span className="node-text">{node.label}</span>
         </div>
       </div>
+      
+      {/* 閲覧モード用のスクロールアイコン */}
+      {onNodeClickScroll && (
+        <div className="viewer-node-indicator">
+          <BookOpen size={12} />
+        </div>
+      )}
     </div>
   );
 };
 
-const LegacyTreeViewer = ({ nodes, edges }) => {
+const LegacyTreeViewer = ({ nodes, edges, onNodeClickScroll }) => {
   return (
     <div className="legacy-tree-viewer">
       <svg className="tree-svg" width="100%" height="400">
@@ -167,15 +196,22 @@ const LegacyTreeViewer = ({ nodes, edges }) => {
         {nodes.map(node => (
           <div
             key={node.id}
-            className="legacy-tree-node"
+            className={`legacy-tree-node ${onNodeClickScroll ? 'clickable' : ''}`}
             style={{
               left: `${node.x}px`,
               top: `${node.y}px`
             }}
+            onClick={onNodeClickScroll ? () => onNodeClickScroll(node) : undefined}
+            title={onNodeClickScroll ? `「${node.label}」の見出しにスクロール` : undefined}
           >
             <div className="node-circle">
               <span className="node-text">{node.label}</span>
             </div>
+            {onNodeClickScroll && (
+              <div className="viewer-node-indicator">
+                <BookOpen size={12} />
+              </div>
+            )}
           </div>
         ))}
       </div>
