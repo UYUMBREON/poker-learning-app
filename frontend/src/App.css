@@ -3025,3 +3025,518 @@
       display: none;
     }
   }
+/* =================================
+   強化版樹形図エディタの追加スタイル
+   ================================= */
+
+/* ノードの枠のみスタイル */
+.custom-node {
+  background: white !important; /* 背景は常に白 */
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.custom-node:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 読み取り専用ノードのホバー効果 */
+.readonly-node:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 階層下げボタンのスタイル */
+.demote-btn {
+  background: #8b5cf6;
+}
+
+.demote-btn:hover {
+  background: #7c3aed;
+  transform: scale(1.1);
+}
+
+/* エッジ設定パネルのスタイル */
+.edge-settings-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  min-width: 320px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  border: 1px solid #e2e8f0;
+}
+
+.edge-label-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+}
+
+.edge-label-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* カスタムエッジのスタイル */
+.react-flow__edge-path {
+  cursor: pointer;
+  transition: stroke-width 0.2s ease;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 3px !important;
+}
+
+/* エッジラベルのスタイル（更新版：囲み枠なし） */
+.edge-label {
+  font-size: 10px;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 500;
+  text-shadow: 0 0 3px rgba(255, 255, 255, 0.8);
+  line-height: 16px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  transition: all 0.2s ease;
+}
+
+.edge-label:hover {
+  text-shadow: 0 0 4px rgba(255, 255, 255, 1);
+  transform: none; /* ホバー時の移動を削除 */
+}
+
+/* ノードコントロールボタンの調整 */
+.node-controls {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  display: flex;
+  gap: 2px;
+  flex-direction: column;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 1001;
+}
+
+.custom-node:hover .node-controls {
+  opacity: 1;
+}
+
+.node-control-btn {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: white;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  margin-bottom: 1px;
+}
+
+/* 移動ボタン */
+.move-left-btn,
+.move-right-btn {
+  background: #3b82f6;
+}
+
+.move-left-btn:hover,
+.move-right-btn:hover {
+  background: #2563eb;
+  transform: scale(1.1);
+}
+
+/* 階層上げボタン */
+.promote-btn {
+  background: #f59e0b;
+}
+
+.promote-btn:hover {
+  background: #d97706;
+  transform: scale(1.1);
+}
+
+/* 階層下げボタン */
+.demote-btn {
+  background: #8b5cf6;
+}
+
+.demote-btn:hover {
+  background: #7c3aed;
+  transform: scale(1.1);
+}
+
+/* 追加ボタン */
+.add-btn {
+  background: #10b981;
+}
+
+.add-btn:hover {
+  background: #059669;
+  transform: scale(1.1);
+}
+
+/* 削除ボタン */
+.delete-btn {
+  background: #ef4444;
+}
+
+.delete-btn:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+
+/* 設定ボタン */
+.settings-btn {
+  background: #6b7280;
+}
+
+.settings-btn:hover {
+  background: #4b5563;
+  transform: scale(1.1);
+}
+
+/* エッジ選択時のスタイル */
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 3px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* カラーグリッドの調整（エッジ用） */
+.edge-settings-panel .color-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.edge-settings-panel .color-option {
+  width: 30px;
+  height: 30px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.edge-settings-panel .color-option:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.edge-settings-panel .color-option.selected {
+  border-color: #1e293b;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.edge-settings-panel .color-option.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* 設定パネルのアクションボタン調整 */
+.edge-settings-panel .settings-actions,
+.node-settings-panel .settings-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* React Flowのカスタマイズ（エッジ選択対応） */
+.react-flow__edge {
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke-width: 3px;
+}
+
+/* エッジダブルクリック用のヒント表示 */
+.tree-diagram-editor::after {
+  content: "ヒント: エッジをダブルクリックして設定を変更できます";
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.tree-diagram-editor:hover::after {
+  opacity: 1;
+}
+
+/* ツールチップのアニメーション */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tree-diagram-editor::after {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+/* モバイルデバイス対応の調整 */
+@media (max-width: 768px) {
+  .node-control-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+  
+  .node-controls {
+    top: -14px;
+    right: -14px;
+    gap: 3px;
+  }
+  
+  .edge-settings-panel,
+  .node-settings-panel {
+    min-width: 280px;
+    margin: 20px;
+  }
+  
+  .edge-settings-panel .color-grid,
+  .node-settings-panel .color-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .edge-settings-panel .settings-actions,
+  .node-settings-panel .settings-actions {
+    flex-direction: column;
+  }
+  
+  .update-btn,
+  .cancel-btn {
+    width: 100%;
+  }
+  
+  /* エッジ編集入力フィールドのサイズ調整 */
+  .edge-label-input {
+    font-size: 10px;
+    padding: 2px 4px;
+    height: 16px;
+  }
+  
+  /* エッジラベル関連の調整 */
+  .edge-label {
+    font-size: 9px;
+  }
+
+  /* モバイルでのヒント表示を調整 */
+  .tree-diagram-editor::after {
+    font-size: 10px;
+    padding: 4px 8px;
+    bottom: 5px;
+    left: 5px;
+  }
+}
+
+/* タッチデバイス対応 */
+@media (hover: none) and (pointer: coarse) {
+  .node-controls {
+    opacity: 1; /* タッチデバイスでは常に表示 */
+  }
+  
+  .node-control-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  
+  /* タッチデバイスではホバーヒントを非表示 */
+  .tree-diagram-editor::after {
+    display: none;
+  }
+}
+
+/* アクセシビリティの改善 */
+.node-control-btn:focus,
+.edge-label-input:focus,
+.color-option:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* ハイコントラストモード対応 */
+@media (prefers-contrast: high) {
+  .custom-node {
+    border-width: 4px !important;
+  }
+  
+  .react-flow__edge-path {
+    stroke-width: 3px !important;
+  }
+  
+  .edge-label {
+    border-width: 2px;
+    font-weight: 600;
+  }
+  
+  .node-control-btn {
+    border: 1px solid white;
+  }
+}
+
+/* アニメーション無効化設定 */
+@media (prefers-reduced-motion: reduce) {
+  .custom-node,
+  .node-control-btn,
+  .color-option,
+  .edge-label,
+  .react-flow__edge-path {
+    transition: none !important;
+    animation: none !important;
+  }
+  
+  .custom-node:hover,
+  .readonly-node:hover {
+    transform: none !important;
+  }
+  
+  .node-control-btn:hover {
+    transform: none !important;
+  }
+  
+  .tree-diagram-editor::after {
+    animation: none !important;
+  }
+}
+
+/* 印刷スタイル */
+@media print {
+  .node-controls,
+  .settings-overlay,
+  .tree-diagram-editor::after {
+    display: none !important;
+  }
+  
+  .custom-node {
+    box-shadow: none !important;
+    border-width: 2px !important;
+  }
+  
+  .react-flow__edge-path {
+    stroke-width: 2px !important;
+  }
+  
+  .edge-label {
+    text-shadow: none !important;
+    color: #000 !important;
+  }
+}
+
+/* フォーカス管理の改善 */
+.tree-diagram-editor {
+  position: relative;
+}
+
+.tree-diagram-editor:focus-within .react-flow__edge {
+  pointer-events: all;
+}
+
+/* エッジとノードの重なり順序調整 */
+.react-flow__edge {
+  z-index: 1;
+}
+
+.react-flow__node {
+  z-index: 10;
+}
+
+.node-controls {
+  z-index: 20;
+}
+
+.settings-overlay {
+  z-index: 1000;
+}
+
+/* カスタムマーカーの定義 */
+.react-flow svg defs marker path {
+  fill: inherit;
+  stroke: none;
+}
+
+/* エッジの選択インジケーター */
+.react-flow__edge.selected {
+  z-index: 5;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.6));
+}
+
+/* ノード設定パネルの「枠の色」ラベル調整 */
+.node-settings-panel .setting-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+/* エラー状態のスタイル */
+.tree-diagram-editor.error {
+  border: 2px solid #ef4444;
+  border-radius: 8px;
+}
+
+.tree-diagram-editor.error::after {
+  content: "エラー: 樹形図の読み込みに失敗しました";
+  background: #ef4444;
+  color: white;
+}
+
+/* 成功状態のフィードバック */
+.tree-diagram-editor.saved::after {
+  content: "保存されました";
+  background: #10b981;
+  color: white;
+  opacity: 1;
+}
+
+/* ローディング状態 */
+.tree-diagram-editor.loading::after {
+  content: "読み込み中...";
+  background: #3b82f6;
+  color: white;
+  opacity: 1;
+}
