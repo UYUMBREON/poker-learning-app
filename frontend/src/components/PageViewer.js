@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Edit, ArrowLeft, FileText, Tag, Clock } from 'lucide-react';
+import { Edit, ArrowLeft, FileText, Tag, Clock, GitBranch } from 'lucide-react';
 import { usePage } from '../hooks/useApi';
 import { formatDateTime } from '../utils/constants';
 import LoadingSpinner from './common/LoadingSpinner';
@@ -8,6 +8,7 @@ import ErrorMessage from './common/ErrorMessage';
 import Button from './common/Button';
 import TagBadge from './common/TagBadge';
 import MarkdownViewer from './common/MarkdownViewer';
+import TreeDiagramViewer from './TreeDiagramViewer';
 
 const PageViewer = () => {
   const { id } = useParams();
@@ -26,8 +27,20 @@ const PageViewer = () => {
     return <ErrorMessage message="ページが見つかりません" />;
   }
 
+  // 樹形図データを解析
+  let parsedTreeData = null;
+  if (page.tree_data) {
+    try {
+      parsedTreeData = typeof page.tree_data === 'string' 
+        ? JSON.parse(page.tree_data) 
+        : page.tree_data;
+    } catch (error) {
+      console.error('樹形図データの解析に失敗しました:', error);
+    }
+  }
+
   return (
-    <div className="page-viewer">
+    <div className="page-viewer-with-tree">
       <ViewerHeader 
         page={page}
         onEdit={() => navigate(`/page/${id}/edit`)}
@@ -36,11 +49,27 @@ const PageViewer = () => {
 
       <PageMeta page={page} />
 
-      <div className="viewer-sections">
-        <ContentViewerSection content={page.content} />
-      </div>
+      <div className="viewer-layout">
+        {/* 左側: 樹形図セクション (1/3) */}
+        <div className="tree-diagram-section">
+          <div className="section-header">
+            <h3 className="section-title">
+              <GitBranch size={20} />
+              樹形図
+            </h3>
+          </div>
+          <TreeDiagramViewer treeData={parsedTreeData} />
+        </div>
 
-      <TagsViewerSection tags={page.tags} />
+        {/* 右側: コンテンツ表示セクション (2/3) */}
+        <div className="content-viewer-section">
+          <div className="viewer-sections">
+            <ContentViewerSection content={page.content} />
+          </div>
+
+          <TagsViewerSection tags={page.tags} />
+        </div>
+      </div>
     </div>
   );
 };
