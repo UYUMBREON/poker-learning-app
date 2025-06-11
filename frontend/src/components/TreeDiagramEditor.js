@@ -50,9 +50,18 @@ const CustomNode = ({ id, data, selected }) => {
         color: data.color === '#FFFFFF' ? '#000000' : '#FFFFFF',
         fontWeight: 'bold',
         fontSize: `${Math.max(10, data.size / 6)}px`,
-        cursor: 'pointer',
+        cursor: 'grab',
         position: 'relative',
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+        // 横方向のドラッグのみ許可
+        userSelect: 'none',
+        pointerEvents: 'auto',
+      }}
+      // 縦方向のドラッグを防止
+      onDragStart={(e) => {
+        // ドラッグ開始時にY座標を記録
+        e.dataTransfer.setData('text/plain', '');
+        data.onDragStart && data.onDragStart(id, e);
       }}
     >
       {/* React Flow用のHandleを追加 */}
@@ -233,6 +242,33 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
     custom: CustomNode,
   }), []);
 
+  // 横方向のドラッグのみを許可するノード変更ハンドラー
+  const handleNodesChange = useCallback((changes) => {
+    setNodes((currentNodes) => {
+      return currentNodes.map((node) => {
+        const change = changes.find(c => c.id === node.id && c.type === 'position');
+        if (change && change.position) {
+          // Y座標は固定、X座標のみ変更を許可
+          const newX = change.position.x;
+          const fixedY = node.position.y; // Y座標は変更しない
+          
+          // グリッドにスナップ（20pxグリッド）
+          const gridSize = 20;
+          const snappedX = Math.round(newX / gridSize) * gridSize;
+          
+          return {
+            ...node,
+            position: {
+              x: snappedX,
+              y: fixedY
+            }
+          };
+        }
+        return node;
+      });
+    });
+  }, [setNodes]);
+
   // ラベル変更ハンドラー
   const handleLabelChange = useCallback((nodeId, newLabel) => {
     if (!treeData) {
@@ -393,33 +429,6 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
       return;
     }
 
-    // サイズが変更された場合、既存のノードの位置を調整
-    if (updates.size) {
-      setNodes((currentNodes) =>
-        currentNodes.map((node) => {
-          if (node.id === nodeId) {
-            const oldSize = node.data.size;
-            const newSize = updates.size;
-            const sizeDiff = (newSize - oldSize) / 2;
-            
-            return {
-              ...node,
-              position: {
-                x: node.position.x - sizeDiff,
-                y: node.position.y - sizeDiff,
-              },
-              data: {
-                ...node.data,
-                size: newSize,
-                color: updates.color || node.data.color,
-              }
-            };
-          }
-          return node;
-        })
-      );
-    }
-
     const updateNode = (node) => {
       if (!node || !node.id) {
         return node;
@@ -445,7 +454,7 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
     } catch (error) {
       console.error('Error updating node:', error);
     }
-  }, [treeData, onTreeDataChange, setNodes]);
+  }, [treeData, onTreeDataChange]);
 
   // 【修正版】樹形図のレイアウト計算 - 下方向配置＋同一階層高さ統一
   const calculateTreeLayout = useCallback((treeData) => {
@@ -458,10 +467,10 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
     
     // 【修正】レベルごとの設定
     const LEVEL_CONFIG = {
-      verticalSpacing: 315,     // 垂直間隔（225 × 1.4）
-      baseAngle: 180,           // 初期最大角度（180度）
-      angleReductionRate: 0.5,  // 各レベルでの角度縮小率（0.65→0.5でより早く狭まる）
-      minAngle: 45,             // 最小角度（45度）
+      verticalSpacing: 315,
+      baseAngle: 180,
+      angleReductionRate: 0.25, // 0.35→0.25に変更（より急速に狭まる）
+      minAngle: 20,             // 30→20度に変更（より狭い最小角度）
       baseRadius: 378,          // 初期半径（270 × 1.4）
       radiusGrowthRate: 1.2,    // 半径増加率
       edgeReductionRate: 0.9,   // エッジ長短縮率
@@ -530,6 +539,16 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
         sourcePosition: Position.Bottom,
         targetPosition: Position.Top,
         zIndex: 1000,
+        // ドラッグを完全に無効化するための設定
+        draggable: false,
+        selectable: true,
+        deletable: false,
+        // 位置変更を防ぐための設定
+        positionAbsolute: { x: x - halfSize, y: y - halfSize },
+        // スタイルでポインターイベントを制御
+        style: {
+          pointerEvents: 'auto', // 選択は可能にする
+        }
       };
 
       nodes.push(reactFlowNode);
@@ -551,13 +570,17 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
           // 子ノードが1つの場合は真下に配置
           childAngles = [90]; // 真下 = 90度
         } else {
-          // 複数の子ノードの場合は下方向を中心とした扇形に配置
-          const totalAngle = nextMaxAngle;
-          const angleStep = totalAngle / (childCount - 1);
-          const startAngle = 90 - totalAngle / 2; // 真下から左右に展開
+          // 複数の子ノードの場合は縮小された角度範囲内で配置
+          // デバッグ用ログ
+          console.log(`Level ${level + 1}: maxAngle=${nextMaxAngle}, childCount=${childCount}`);
+          
+          const angleStep = nextMaxAngle / (childCount - 1);
+          const startAngle = 90 - nextMaxAngle / 2; // 真下から左右に展開
           
           for (let i = 0; i < childCount; i++) {
-            childAngles.push(startAngle + angleStep * i);
+            const angle = startAngle + angleStep * i;
+            childAngles.push(angle);
+            console.log(`  Child ${i}: angle=${angle}`);
           }
         }
 
@@ -575,19 +598,19 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
               },
               style: {
                 stroke: '#6B7280',
-                strokeWidth: 2, // 一定の太さに変更（レベル依存を廃止）
+                strokeWidth: 2, // 統一された太さ
               },
               zIndex: 1,
             });
 
-            // 子ノードの位置を再帰的に計算
+            // 子ノードの位置を再帰的に計算（縮小された角度を渡す）
             calculatePositions(
               child, 
               level + 1, 
               x, 
               y, 
               childAngles[index], 
-              nextMaxAngle
+              nextMaxAngle // 縮小された角度を次のレベルに渡す
             );
           }
         });
@@ -633,13 +656,28 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
           nodes={nodes}
           edges={edges}
           onNodesChange={() => {}} // ノード変更を完全に無効化
-          onEdgesChange={onEdgesChange}
+          onEdgesChange={() => {}} // エッジ変更も無効化
           nodeTypes={nodeTypes}
           nodesDraggable={false}        // ノードの移動を無効化
           nodesConnectable={false}      // ノードの接続を無効化
           elementsSelectable={true}     // 選択は有効（編集のため）
           panOnDrag={true}              // パン操作は有効
           zoomOnScroll={true}           // ズーム操作は有効
+          panOnScroll={false}           // スクロールでのパンを無効化
+          panOnScrollSpeed={0}          // パンスピードを0に
+          selectNodesOnDrag={false}     // ドラッグでの選択を無効化
+          // 追加の設定でドラッグを完全に無効化
+          nodeOrigin={[0.5, 0.5]}       // ノードの原点を中央に固定
+          snapToGrid={false}            // グリッドスナップを無効化
+          snapGrid={[1, 1]}             // 最小グリッドサイズ
+          connectionMode="loose"        // 接続モードを緩やかに
+          // すべてのインタラクションを制御
+          onNodeDrag={() => {}}         // ドラッグイベントを無効化
+          onNodeDragStart={() => {}}    // ドラッグ開始を無効化
+          onNodeDragStop={() => {}}     // ドラッグ終了を無効化
+          onSelectionDrag={() => {}}    // 選択範囲ドラッグを無効化
+          onSelectionDragStart={() => {}} // 選択範囲ドラッグ開始を無効化
+          onSelectionDragStop={() => {}}  // 選択範囲ドラッグ終了を無効化
           fitView
           fitViewOptions={{
             padding: 0.2,
