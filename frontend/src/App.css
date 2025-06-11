@@ -2549,3 +2549,153 @@
     font-size: 12px;
   }
 }
+/* =================================
+   タグ検索機能のスタイル
+   ================================= */
+
+/* タグ一覧セクションの検索ヘッダー */
+.tags-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  gap: 20px;
+}
+
+.tags-list-header h3 {
+  font-size: 1.25rem;
+  color: #374151;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.tags-search-container {
+  max-width: 300px;
+  min-width: 200px;
+  flex: 1;
+}
+
+/* 検索結果なしのメッセージ */
+.no-search-results {
+  text-align: center;
+  padding: 60px 20px;
+  color: #64748b;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 2px dashed #cbd5e1;
+}
+
+.no-search-results h4 {
+  margin: 16px 0 8px 0;
+  color: #374151;
+  font-size: 1.125rem;
+}
+
+.no-search-results p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* ページエディターのタグセクションヘッダー */
+.tags-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  gap: 15px;
+}
+
+.tags-section-info {
+  font-size: 0.875rem;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.search-results-info {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.total-tags-info {
+  color: #64748b;
+}
+
+/* タグセレクターの検索機能 */
+.tag-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.tag-selector-search {
+  margin-bottom: 5px;
+}
+
+.tag-options-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tag-options-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.no-tags-found {
+  text-align: center;
+  padding: 20px;
+  color: #64748b;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px dashed #cbd5e1;
+}
+
+.no-tags-found p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.tag-search-info {
+  font-size: 0.875rem;
+  color: #64748b;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+/* =================================
+   レスポンシブ対応の追加
+   ================================= */
+
+@media (max-width: 768px) {
+  /* タグセレクター */
+  .tags-list-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+  
+  .tags-search-container {
+    max-width: 100%;
+    min-width: 100%;
+  }
+  
+  .tags-section-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .tag-options-grid {
+    justify-content: center;
+  }
+  
+  .tag-search-info {
+    font-size: 0.8rem;
+  }
+}
