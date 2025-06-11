@@ -2399,3 +2399,153 @@
   /* 現在はライトモードのみサポート */
   /* 将来的にダークモードを実装する場合はここに追加 */
 }
+
+/* 既存のApp.cssに以下のスタイルを追加 */
+
+/* ノード移動ボタンのスタイル */
+.move-left-btn {
+  background: #3b82f6;
+}
+
+.move-left-btn:hover {
+  background: #2563eb;
+  transform: scale(1.1);
+}
+
+.move-right-btn {
+  background: #3b82f6;
+}
+
+.move-right-btn:hover {
+  background: #2563eb;
+  transform: scale(1.1);
+}
+
+/* ノードコントロールボタンの配置を調整 */
+.node-controls {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  display: flex;
+  gap: 2px;
+  flex-direction: column;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 1001;
+}
+
+.custom-node:hover .node-controls {
+  opacity: 1;
+}
+
+/* ボタンサイズを統一 */
+.node-control-btn {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: white;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  margin-bottom: 1px;
+}
+
+/* 各ボタンの色分け */
+.add-btn {
+  background: #10b981;
+}
+
+.add-btn:hover {
+  background: #059669;
+  transform: scale(1.1);
+}
+
+.delete-btn {
+  background: #ef4444;
+}
+
+.delete-btn:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+
+.settings-btn {
+  background: #6b7280;
+}
+
+.settings-btn:hover {
+  background: #4b5563;
+  transform: scale(1.1);
+}
+
+/* グリッドパターンの調整 */
+.react-flow__background {
+  opacity: 0.4;
+}
+
+/* ノード選択時のスタイル強化 */
+.custom-node {
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.custom-node:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* フォーカス状態の改善 */
+.node-control-btn:focus {
+  outline: 2px solid #ffffff;
+  outline-offset: 1px;
+}
+
+/* アクセシビリティの改善 */
+@media (prefers-reduced-motion: reduce) {
+  .custom-node,
+  .node-control-btn {
+    transition: none;
+    animation: none;
+  }
+  
+  .custom-node:hover {
+    transform: none;
+  }
+  
+  .node-control-btn:hover {
+    transform: none;
+  }
+}
+
+/* モバイルデバイス対応 */
+@media (max-width: 768px) {
+  .node-control-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+  
+  .node-controls {
+    top: -14px;
+    right: -14px;
+    gap: 3px;
+  }
+}
+
+/* タッチデバイス対応 */
+@media (hover: none) and (pointer: coarse) {
+  .node-controls {
+    opacity: 1; /* タッチデバイスでは常に表示 */
+  }
+  
+  .node-control-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+}

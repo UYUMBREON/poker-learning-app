@@ -10,7 +10,7 @@ import ReactFlow, {
   MarkerType,
   Handle,
 } from 'react-flow-renderer';
-import { Plus, Trash2, Palette, Settings } from 'lucide-react';
+import { Plus, Trash2, Palette, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // カスタムノードコンポーネント
 const CustomNode = ({ id, data, selected }) => {
@@ -35,6 +35,9 @@ const CustomNode = ({ id, data, selected }) => {
     }
   };
 
+  // React Flowの選択状態またはカスタム選択状態を使用
+  const isSelected = selected || data.isSelected;
+
   return (
     <div
       className="custom-node"
@@ -42,7 +45,7 @@ const CustomNode = ({ id, data, selected }) => {
         backgroundColor: data.color,
         width: `${data.size}px`,
         height: `${data.size}px`,
-        border: selected ? '3px solid #3b82f6' : '2px solid #e2e8f0',
+        border: isSelected ? '3px solid #3b82f6' : '2px solid #e2e8f0',
         borderRadius: '50%',
         display: 'flex',
         alignItems: 'center',
@@ -50,18 +53,16 @@ const CustomNode = ({ id, data, selected }) => {
         color: data.color === '#FFFFFF' ? '#000000' : '#FFFFFF',
         fontWeight: 'bold',
         fontSize: `${Math.max(10, data.size / 6)}px`,
-        cursor: 'grab',
+        cursor: 'pointer',
         position: 'relative',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-        // 横方向のドラッグのみ許可
+        boxShadow: isSelected 
+          ? '0 4px 16px rgba(59, 130, 246, 0.4)' 
+          : '0 2px 8px rgba(0, 0, 0, 0.15)',
         userSelect: 'none',
         pointerEvents: 'auto',
-      }}
-      // 縦方向のドラッグを防止
-      onDragStart={(e) => {
-        // ドラッグ開始時にY座標を記録
-        e.dataTransfer.setData('text/plain', '');
-        data.onDragStart && data.onDragStart(id, e);
+        transition: 'all 0.2s ease',
+        // React Flowの選択機能を確実に動作させるための設定
+        outline: 'none',
       }}
     >
       {/* React Flow用のHandleを追加 */}
@@ -73,8 +74,10 @@ const CustomNode = ({ id, data, selected }) => {
           border: 'none',
           width: '1px',
           height: '1px',
-          top: '50%',
-          transform: 'translateY(-50%)',
+          top: '-1px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          opacity: 0,
         }}
       />
       <Handle
@@ -85,8 +88,10 @@ const CustomNode = ({ id, data, selected }) => {
           border: 'none',
           width: '1px',
           height: '1px',
-          bottom: '50%',
-          transform: 'translateY(50%)',
+          bottom: '-1px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          opacity: 0,
         }}
       />
 
@@ -97,10 +102,11 @@ const CustomNode = ({ id, data, selected }) => {
           onChange={handleLabelChange}
           onBlur={handleLabelSubmit}
           onKeyDown={handleKeyPress}
+          onClick={(e) => e.stopPropagation()} // 編集中のクリックを停止
           autoFocus
           style={{
-            width: '100%',
-            height: '100%',
+            width: '80%',
+            height: '80%',
             border: 'none',
             outline: 'none',
             background: 'transparent',
@@ -108,24 +114,98 @@ const CustomNode = ({ id, data, selected }) => {
             textAlign: 'center',
             fontSize: 'inherit',
             fontWeight: 'inherit',
+            borderRadius: '50%',
           }}
         />
       ) : (
         <span
-          onDoubleClick={() => setIsEditing(true)}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            setIsEditing(true);
+          }}
           style={{
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
             padding: '0 4px',
+            maxWidth: '90%',
+            textAlign: 'center',
+            pointerEvents: 'none', // テキストへのクリックを無効化してノード全体での選択を促進
           }}
         >
           {data.label}
         </span>
       )}
       
-      {selected && (
-        <div className="node-controls">
+      {isSelected && (
+        <div 
+          className="node-controls"
+          style={{
+            position: 'absolute',
+            top: '-12px',
+            right: '-12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px',
+            zIndex: 1001,
+            pointerEvents: 'auto', // 操作ボタンのクリックを有効化
+          }}
+        >
+          {/* 左移動ボタン */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              data.onMoveNode(id, 'left');
+            }}
+            className="node-control-btn move-left-btn"
+            title="左に移動"
+            style={{
+              width: '22px',
+              height: '22px',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '10px',
+              color: 'white',
+              background: '#3b82f6',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+              marginBottom: '1px',
+            }}
+          >
+            <ChevronLeft size={12} />
+          </button>
+          
+          {/* 右移動ボタン */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              data.onMoveNode(id, 'right');
+            }}
+            className="node-control-btn move-right-btn"
+            title="右に移動"
+            style={{
+              width: '22px',
+              height: '22px',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '10px',
+              color: 'white',
+              background: '#3b82f6',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+              marginBottom: '1px',
+            }}
+          >
+            <ChevronRight size={12} />
+          </button>
+          
+          {/* 子ノード追加ボタン */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -133,9 +213,26 @@ const CustomNode = ({ id, data, selected }) => {
             }}
             className="node-control-btn add-btn"
             title="子ノードを追加"
+            style={{
+              width: '22px',
+              height: '22px',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '10px',
+              color: 'white',
+              background: '#10b981',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+              marginBottom: '1px',
+            }}
           >
             <Plus size={12} />
           </button>
+          
+          {/* 削除ボタン（ルートノード以外） */}
           {!data.isRoot && (
             <button
               onClick={(e) => {
@@ -144,10 +241,27 @@ const CustomNode = ({ id, data, selected }) => {
               }}
               className="node-control-btn delete-btn"
               title="ノードを削除"
+              style={{
+                width: '22px',
+                height: '22px',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '10px',
+                color: 'white',
+                background: '#ef4444',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                marginBottom: '1px',
+              }}
             >
               <Trash2 size={12} />
             </button>
           )}
+          
+          {/* 設定ボタン */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -155,6 +269,20 @@ const CustomNode = ({ id, data, selected }) => {
             }}
             className="node-control-btn settings-btn"
             title="設定"
+            style={{
+              width: '22px',
+              height: '22px',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '10px',
+              color: 'white',
+              background: '#6b7280',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+            }}
           >
             <Settings size={12} />
           </button>
@@ -234,40 +362,91 @@ const NodeSettingsPanel = ({ nodeData, onUpdate, onClose }) => {
 const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [selectedNode, setSelectedNode] = useState(null);
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [settingsNodeData, setSettingsNodeData] = useState(null);
+
+  // グリッドサイズの定数
+  const GRID_SIZE = 20; // 20pxグリッド（表示しやすいサイズに調整）
 
   // ノードタイプの定義
   const nodeTypes = useMemo(() => ({
     custom: CustomNode,
   }), []);
 
-  // 横方向のドラッグのみを許可するノード変更ハンドラー
+  // React Flowのノード変更ハンドラー（選択状態を処理）
   const handleNodesChange = useCallback((changes) => {
-    setNodes((currentNodes) => {
-      return currentNodes.map((node) => {
-        const change = changes.find(c => c.id === node.id && c.type === 'position');
-        if (change && change.position) {
-          // Y座標は固定、X座標のみ変更を許可
-          const newX = change.position.x;
-          const fixedY = node.position.y; // Y座標は変更しない
-          
-          // グリッドにスナップ（20pxグリッド）
-          const gridSize = 20;
-          const snappedX = Math.round(newX / gridSize) * gridSize;
-          
-          return {
-            ...node,
-            position: {
-              x: snappedX,
-              y: fixedY
-            }
-          };
+    // 選択変更を処理
+    changes.forEach((change) => {
+      if (change.type === 'select') {
+        if (change.selected) {
+          setSelectedNodeId(change.id);
+        } else if (selectedNodeId === change.id) {
+          setSelectedNodeId(null);
         }
-        return node;
-      });
+      }
     });
-  }, [setNodes]);
+    
+    // 他の変更は無視（位置変更など）
+    const filteredChanges = changes.filter(change => 
+      change.type === 'select' || change.type === 'remove'
+    );
+    
+    if (filteredChanges.length > 0) {
+      onNodesChange(filteredChanges);
+    }
+  }, [onNodesChange, selectedNodeId]);
+
+  // 空白クリックで選択解除
+  const handlePaneClick = useCallback(() => {
+    setSelectedNodeId(null);
+  }, []);
+
+  // ノード移動ハンドラー（グリッド単位）
+  const handleMoveNode = useCallback((nodeId, direction) => {
+    if (!treeData) {
+      console.error('Tree data is not available');
+      return;
+    }
+
+    // グリッド単位での移動量を計算
+    const moveAmount = direction === 'left' ? -1 : 1;
+    
+    // ノード位置データを更新（treeDataには位置情報を保存）
+    const updateNodePosition = (node) => {
+      if (!node || !node.id) {
+        return node;
+      }
+      
+      if (node.id === nodeId) {
+        // 現在の位置に移動量を加算
+        const currentX = node.gridX || 0; // グリッド座標で管理
+        const newGridX = currentX + moveAmount;
+        
+        return { 
+          ...node, 
+          gridX: newGridX // グリッド座標を保存
+        };
+      }
+      
+      if (node.children) {
+        return {
+          ...node,
+          children: node.children.map(updateNodePosition)
+        };
+      }
+      return node;
+    };
+
+    try {
+      const updatedTreeData = updateNodePosition(treeData);
+      if (updatedTreeData) {
+        onTreeDataChange(updatedTreeData);
+      }
+    } catch (error) {
+      console.error('Error moving node:', error);
+    }
+  }, [treeData, onTreeDataChange]);
 
   // ラベル変更ハンドラー
   const handleLabelChange = useCallback((nodeId, newLabel) => {
@@ -327,6 +506,7 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
           label: `Node ${childCount + 1}`,
           color: '#10B981',
           size: 50,
+          gridX: 0, // 初期グリッド位置
           children: []
         };
 
@@ -414,7 +594,11 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
     try {
       const node = findNode(treeData);
       if (node) {
-        setSelectedNode(node);
+        setSettingsNodeData({
+          id: node.id,
+          size: node.size,
+          color: node.color
+        });
         setShowSettings(true);
       }
     } catch (error) {
@@ -456,7 +640,7 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
     }
   }, [treeData, onTreeDataChange]);
 
-  // 【修正版】樹形図のレイアウト計算 - 下方向配置＋同一階層高さ統一
+  // 修正版：樹形図のレイアウト計算（グリッド位置対応）
   const calculateTreeLayout = useCallback((treeData) => {
     if (!treeData || !treeData.id) {
       return { nodes: [], edges: [] };
@@ -465,57 +649,58 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
     const nodes = [];
     const edges = [];
     
-    // 【修正】レベルごとの設定
+    // レベルごとの設定
     const LEVEL_CONFIG = {
-      verticalSpacing: 315,
-      baseAngle: 180,
-      angleReductionRate: 0.25, // 0.35→0.25に変更（より急速に狭まる）
-      minAngle: 20,             // 30→20度に変更（より狭い最小角度）
-      baseRadius: 378,          // 初期半径（270 × 1.4）
-      radiusGrowthRate: 1.2,    // 半径増加率
-      edgeReductionRate: 0.9,   // エッジ長短縮率
-      minEdgeRatio: 1/3         // 最小エッジ長比率（初期の1/3）
+      verticalSpacing: 200, // 100px → 200px（2倍に変更）
+      baseRadius: 160,
+      radiusGrowthRate: 1.0,
     };
 
-    // 【修正】下方向配置＋同一階層高さ統一での位置計算関数
-    const calculatePositions = (node, level = 0, parentX = 0, parentY = 0, 
-                               parentAngle = 90, maxAngle = LEVEL_CONFIG.baseAngle) => {
+    // グリッド対応での位置計算関数
+    const calculatePositions = (node, level = 0, parentX = 0, parentY = 0, childIndex = 0, siblingCount = 1) => {
       if (!node || !node.id) return;
 
       let x, y;
       
       if (level === 0) {
-        // ルートノード
+        // ルートノード - グリッドの中心
         x = 0;
         y = 0;
       } else {
-        // 【修正】同一階層での高さ統一 + 下方向配置 + エッジ長段階短縮
-        // エッジ長の計算（レベルに応じて短縮）
-        const edgeReduction = Math.pow(LEVEL_CONFIG.edgeReductionRate, level - 1);
-        const minReduction = LEVEL_CONFIG.minEdgeRatio;
-        const actualReduction = Math.max(minReduction, edgeReduction);
+        // 子ノードの位置計算
+        y = level * LEVEL_CONFIG.verticalSpacing;
         
-        const fixedY = level * LEVEL_CONFIG.verticalSpacing * actualReduction; // エッジ長に応じた固定Y座標
+        // グリッド位置の適用
+        const gridOffsetX = (node.gridX || 0) * GRID_SIZE;
         
-        // 水平方向の配置は放射角度で計算（エッジ長調整済み）
-        const horizontalRadius = LEVEL_CONFIG.baseRadius * actualReduction * Math.pow(LEVEL_CONFIG.radiusGrowthRate, level - 1);
-        
-        // 角度から水平位置を計算（下方向なので角度の意味を調整）
-        if (parentAngle === 90) {
-          // 真下の場合
-          x = parentX;
-        } else {
-          // 角度に基づく水平オフセット
-          const angleOffset = parentAngle - 90; // 真下からの偏差
-          const radians = (angleOffset * Math.PI) / 180;
-          x = parentX + horizontalRadius * Math.sin(radians);
+        // 基本の水平位置（兄弟ノード間の配置）
+        let baseX = parentX;
+        if (siblingCount > 1) {
+          // 複数の兄弟がいる場合の初期配置
+          const spacing = GRID_SIZE * 3; // 3グリッド間隔
+          
+          if (siblingCount === 2) {
+            // 2つの子ノードの場合は左右対称に配置
+            const offset = GRID_SIZE * 2; // 2グリッド分のオフセット
+            baseX = parentX + (childIndex === 0 ? -offset : offset);
+          } else {
+            // 3つ以上の子ノードの場合は等間隔配置
+            const totalWidth = (siblingCount - 1) * spacing;
+            const startX = parentX - totalWidth / 2;
+            baseX = startX + childIndex * spacing;
+          }
         }
         
-        y = fixedY; // 同一階層では固定Y座標
+        // グリッドオフセットを適用
+        x = baseX + gridOffsetX;
+        
+        // グリッドに合わせる
+        x = Math.round(x / GRID_SIZE) * GRID_SIZE;
+        y = Math.round(y / GRID_SIZE) * GRID_SIZE;
       }
 
       // ノードサイズの調整
-      const nodeSize = Math.max(30, (node.size || 50) - level * 3); // レベルに応じてサイズを縮小
+      const nodeSize = Math.max(30, (node.size || 50) - level * 2);
       const halfSize = nodeSize / 2;
 
       // ノードを作成
@@ -531,60 +716,30 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
           color: node.color || '#3B82F6',
           size: nodeSize,
           isRoot: level === 0,
+          isSelected: selectedNodeId === node.id,
           onLabelChange: handleLabelChange,
           onAddChild: handleAddChild,
           onDelete: handleDeleteNode,
           onShowSettings: handleShowSettings,
+          onMoveNode: handleMoveNode,
         },
         sourcePosition: Position.Bottom,
         targetPosition: Position.Top,
         zIndex: 1000,
-        // ドラッグを完全に無効化するための設定
         draggable: false,
-        selectable: true,
+        selectable: true, // 選択可能を明示
         deletable: false,
-        // 位置変更を防ぐための設定
-        positionAbsolute: { x: x - halfSize, y: y - halfSize },
-        // スタイルでポインターイベントを制御
+        selected: selectedNodeId === node.id, // React Flow用の選択状態
         style: {
-          pointerEvents: 'auto', // 選択は可能にする
+          pointerEvents: 'auto',
+          cursor: 'pointer',
         }
       };
 
       nodes.push(reactFlowNode);
 
-      // 【修正】子ノードの角度計算（下方向配置用）
+      // 子ノードの処理
       if (node.children && Array.isArray(node.children) && node.children.length > 0) {
-        // 次のレベルでの最大角度を計算（放射角度を狭める）
-        const nextMaxAngle = Math.max(
-          LEVEL_CONFIG.minAngle, 
-          maxAngle * LEVEL_CONFIG.angleReductionRate
-        );
-
-        const childCount = node.children.length;
-        
-        // 子ノードの角度配列を計算（下方向基準）
-        let childAngles = [];
-        
-        if (childCount === 1) {
-          // 子ノードが1つの場合は真下に配置
-          childAngles = [90]; // 真下 = 90度
-        } else {
-          // 複数の子ノードの場合は縮小された角度範囲内で配置
-          // デバッグ用ログ
-          console.log(`Level ${level + 1}: maxAngle=${nextMaxAngle}, childCount=${childCount}`);
-          
-          const angleStep = nextMaxAngle / (childCount - 1);
-          const startAngle = 90 - nextMaxAngle / 2; // 真下から左右に展開
-          
-          for (let i = 0; i < childCount; i++) {
-            const angle = startAngle + angleStep * i;
-            childAngles.push(angle);
-            console.log(`  Child ${i}: angle=${angle}`);
-          }
-        }
-
-        // 子ノードを処理
         node.children.forEach((child, index) => {
           if (child && child.id) {
             // エッジを作成
@@ -598,19 +753,19 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
               },
               style: {
                 stroke: '#6B7280',
-                strokeWidth: 2, // 統一された太さ
+                strokeWidth: 2,
               },
               zIndex: 1,
             });
 
-            // 子ノードの位置を再帰的に計算（縮小された角度を渡す）
+            // 子ノードの位置を再帰的に計算
             calculatePositions(
               child, 
               level + 1, 
               x, 
               y, 
-              childAngles[index], 
-              nextMaxAngle // 縮小された角度を次のレベルに渡す
+              index,
+              node.children.length
             );
           }
         });
@@ -624,7 +779,7 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
     }
 
     return { nodes, edges };
-  }, [handleLabelChange, handleAddChild, handleDeleteNode, handleShowSettings]);
+  }, [handleLabelChange, handleAddChild, handleDeleteNode, handleShowSettings, handleMoveNode]);
 
   // treeDataが変更されたときにノードとエッジを更新
   React.useEffect(() => {
@@ -643,6 +798,7 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
         label: 'Root',
         color: '#3B82F6',
         size: 60,
+        gridX: 0, // 初期グリッド位置
         children: []
       };
       onTreeDataChange(initialTreeData);
@@ -655,36 +811,30 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          onNodesChange={() => {}} // ノード変更を完全に無効化
-          onEdgesChange={() => {}} // エッジ変更も無効化
+          onNodesChange={handleNodesChange}
+          onEdgesChange={() => {}}
+          onPaneClick={handlePaneClick}
           nodeTypes={nodeTypes}
-          nodesDraggable={false}        // ノードの移動を無効化
-          nodesConnectable={false}      // ノードの接続を無効化
-          elementsSelectable={true}     // 選択は有効（編集のため）
-          panOnDrag={true}              // パン操作は有効
-          zoomOnScroll={true}           // ズーム操作は有効
-          panOnScroll={false}           // スクロールでのパンを無効化
-          panOnScrollSpeed={0}          // パンスピードを0に
-          selectNodesOnDrag={false}     // ドラッグでの選択を無効化
-          // 追加の設定でドラッグを完全に無効化
-          nodeOrigin={[0.5, 0.5]}       // ノードの原点を中央に固定
-          snapToGrid={false}            // グリッドスナップを無効化
-          snapGrid={[1, 1]}             // 最小グリッドサイズ
-          connectionMode="loose"        // 接続モードを緩やかに
-          // すべてのインタラクションを制御
-          onNodeDrag={() => {}}         // ドラッグイベントを無効化
-          onNodeDragStart={() => {}}    // ドラッグ開始を無効化
-          onNodeDragStop={() => {}}     // ドラッグ終了を無効化
-          onSelectionDrag={() => {}}    // 選択範囲ドラッグを無効化
-          onSelectionDragStart={() => {}} // 選択範囲ドラッグ開始を無効化
-          onSelectionDragStop={() => {}}  // 選択範囲ドラッグ終了を無効化
+          nodesDraggable={false}
+          nodesConnectable={false}
+          elementsSelectable={true}
+          multiSelectionKeyCode={null}
+          panOnDrag={true}
+          zoomOnScroll={true}
+          panOnScroll={false}
+          panOnScrollSpeed={0}
+          selectNodesOnDrag={false}
+          nodeOrigin={[0.5, 0.5]}
+          snapToGrid={true}
+          snapGrid={[GRID_SIZE, GRID_SIZE]}
+          connectionMode="loose"
           fitView
           fitViewOptions={{
             padding: 0.2,
           }}
-          minZoom={0.1}
+          minZoom={0.2}
           maxZoom={2}
-          defaultZoom={0.6}
+          defaultZoom={0.8}
         >
           <Controls position="top-right" />
           <MiniMap 
@@ -695,18 +845,19 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
               width: 120,
             }}
           />
-          <Background variant="dots" gap={20} size={1} />
+          <Background 
+            variant="dots" 
+            gap={GRID_SIZE}
+            size={1}
+            color="#94a3b8"
+          />
         </ReactFlow>
       </div>
 
-      {showSettings && selectedNode && (
+      {showSettings && settingsNodeData && (
         <div className="settings-overlay">
           <NodeSettingsPanel
-            nodeData={{
-              id: selectedNode.id,
-              size: selectedNode.size,
-              color: selectedNode.color
-            }}
+            nodeData={settingsNodeData}
             onUpdate={handleNodeUpdate}
             onClose={() => setShowSettings(false)}
           />
