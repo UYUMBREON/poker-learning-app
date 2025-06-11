@@ -70,12 +70,11 @@ export const useForm = (initialValues = {}, validators = {}) => {
   };
 };
 
-// ページエディター用フォーム
+// ページエディター用フォーム（樹形図機能を削除）
 export const usePageForm = (initialPage = null) => {
   const initialValues = useMemo(() => ({
     title: initialPage?.title || '',
     content: initialPage?.content || '',
-    tree_data: initialPage?.tree_data || { nodes: [], edges: [] },
     tags: initialPage?.tags?.map(tag => tag.id) || []
   }), [initialPage]);
 
@@ -90,10 +89,6 @@ export const usePageForm = (initialPage = null) => {
 
   const form = useForm(initialValues, validators);
 
-  const updateTreeData = useCallback((newTreeData) => {
-    form.setValue('tree_data', newTreeData);
-  }, [form.setValue]);
-
   const toggleTag = useCallback((tagId) => {
     const currentTags = form.values.tags || [];
     const newTags = currentTags.includes(tagId)
@@ -104,7 +99,6 @@ export const usePageForm = (initialPage = null) => {
 
   return {
     ...form,
-    updateTreeData,
     toggleTag
   };
 };

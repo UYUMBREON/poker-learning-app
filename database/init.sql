@@ -1,11 +1,10 @@
 -- データベース初期化SQL
 
--- ページテーブル
+-- ページテーブル（tree_data列を削除）
 CREATE TABLE pages (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     content TEXT,
-    tree_data JSONB, -- 樹形図データをJSONで保存
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -50,9 +49,31 @@ INSERT INTO tags (name, color) VALUES
     ('歴史', '#EC4899'),
     ('化学', '#06B6D4');
 
-INSERT INTO pages (title, content, tree_data) VALUES 
+INSERT INTO pages (title, content) VALUES 
     ('はじめての学習ページ', 
-     'ここに学習内容を記入してください。', 
-     '{"nodes": [{"id": "1", "label": "導入", "x": 100, "y": 50}, {"id": "2", "label": "基礎", "x": 250, "y": 50}, {"id": "3", "label": "応用", "x": 400, "y": 50}], "edges": [{"id": "e1-2", "source": "1", "target": "2"}, {"id": "e2-3", "source": "2", "target": "3"}]}');
+     'ここに学習内容を記入してください。
+
+## 第1章 基礎知識
+この章では基本的な概念について学習します。
+
+### 1.1 導入
+まずは基本的な考え方を理解しましょう。
+
+### 1.2 重要なポイント
+- ポイント1: 基本概念の理解
+- ポイント2: 実践的な応用
+- ポイント3: 発展的な内容
+
+## 第2章 応用
+基礎知識を活用した応用例を学習します。
+
+> 重要: 実際に手を動かして確認することが大切です。
+
+```javascript
+// サンプルコード
+function example() {
+    console.log("Hello, Learning!");
+}
+```');
 
 INSERT INTO page_tags (page_id, tag_id) VALUES (1, 1);
