@@ -74,12 +74,12 @@ app.get('/api/pages/:id', async (req, res) => {
 // ページ作成
 app.post('/api/pages', async (req, res) => {
   try {
-    const { title, content, tree_data, tags } = req.body;
+    const { title, content, tags } = req.body;
     
     // ページを作成
     const pageResult = await pool.query(
-      'INSERT INTO pages (title, content, tree_data) VALUES ($1, $2, $3) RETURNING *',
-      [title, content || '', JSON.stringify(tree_data || {})]
+      'INSERT INTO pages (title, content) VALUES ($1, $2) RETURNING *',
+      [title, content || '']
     );
     
     const pageId = pageResult.rows[0].id;
@@ -105,12 +105,12 @@ app.post('/api/pages', async (req, res) => {
 app.put('/api/pages/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, content, tree_data, tags } = req.body;
+    const { title, content, tags } = req.body;
     
     // ページを更新
     const result = await pool.query(
-      'UPDATE pages SET title = $1, content = $2, tree_data = $3 WHERE id = $4 RETURNING *',
-      [title, content, JSON.stringify(tree_data), id]
+      'UPDATE pages SET title = $1, content = $2 WHERE id = $3 RETURNING *',
+      [title, content, id]
     );
     
     if (result.rows.length === 0) {
