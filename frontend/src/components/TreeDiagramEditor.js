@@ -157,7 +157,11 @@ const CustomNode = ({ id, data, selected }) => {
 
 // ノード設定パネル
 const NodeSettingsPanel = ({ nodeData, onUpdate, onClose }) => {
-  const [size, setSize] = useState(nodeData.size || 50);
+  // 実際のピクセルサイズ（30-120px）を1-100のスケールに変換
+  const pixelSize = nodeData.size || 50;
+  const scaleSize = Math.round(1 + (pixelSize - 30) * (100 - 1) / (120 - 30));
+  
+  const [size, setSize] = useState(scaleSize);
   const [color, setColor] = useState(nodeData.color || '#3B82F6');
 
   const colors = [
@@ -167,7 +171,9 @@ const NodeSettingsPanel = ({ nodeData, onUpdate, onClose }) => {
   ];
 
   const handleUpdate = () => {
-    onUpdate(nodeData.id, { size: parseInt(size), color });
+    // 1-100のスケールを30-120pxに変換
+    const actualSize = Math.round(30 + (parseInt(size) - 1) * (120 - 30) / (100 - 1));
+    onUpdate(nodeData.id, { size: actualSize, color });
     onClose();
   };
 
@@ -179,11 +185,11 @@ const NodeSettingsPanel = ({ nodeData, onUpdate, onClose }) => {
       </div>
       
       <div className="setting-group">
-        <label>サイズ: {size}px</label>
+        <label>サイズ: {size}</label>
         <input
           type="range"
-          min="30"
-          max="120"
+          min="1"
+          max="100"
           value={size}
           onChange={(e) => setSize(e.target.value)}
           className="size-slider"
@@ -450,10 +456,54 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
     const nodes = [];
     const edges = [];
     const levelHeight = 150; // レベル間の垂直距離
-    const baseSpacing = 120; // 基本的な水平間隔
+    const baseSpacing = 240; // 基本的な水平間隔（元の120から2倍に変更）
+
+    // 各階層でのノード数と必要な幅を事前計算する関数
+    const calculateLevelInfo = (node, level = 0, levelInfo = {}) => {
+      if (!node || !node.id) return levelInfo;
+
+      // 現在の階層の情報を初期化
+      if (!levelInfo[level]) {
+        levelInfo[level] = {
+          nodesWithMultipleChildren: 0, // 複数子ノードを持つノードの数
+          hasComplexStructure: false    // その階層に複雑な構造があるか
+        };
+      }
+
+      // 子ノードの数を確認
+      const childrenCount = node.children ? node.children.length : 0;
+      
+      // この階層で複数の子ノードを持つ場合
+      if (childrenCount >= 2) {
+        levelInfo[level].nodesWithMultipleChildren++;
+        levelInfo[level].hasComplexStructure = true;
+      }
+
+      // 子ノードを再帰的に処理
+      if (node.children && Array.isArray(node.children)) {
+        node.children.forEach(child => {
+          calculateLevelInfo(child, level + 1, levelInfo);
+        });
+      }
+
+      return levelInfo;
+    };
+
+    // 階層情報を計算
+    const levelInfo = calculateLevelInfo(treeData);
+
+    // 各階層の間隔を動的に計算
+    const getLevelSpacing = (level) => {
+      // 該当する階層に複雑な構造（複数子ノードを持つノード）があるかチェック
+      if (levelInfo[level] && levelInfo[level].hasComplexStructure) {
+        return baseSpacing * 2;
+      }
+      
+      return baseSpacing;
+    };
 
     // ノードの位置を計算するための再帰関数
-    const calculatePositions = (node, level = 0, parentX = 0, parentY = 0, siblingIndex = 0, totalSiblings = 1) => {
+    const calculatePositions = (node, level = 0, parentX = 0, parentY = 0, siblingIndex = 0, totalSiblings = 1, parentLevelSpacing = baseSpacing) => {
       if (!node || !node.id) {
         return;
       }
@@ -474,15 +524,15 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
           x = parentX;
         } else if (totalSiblings === 2) {
           // 子ノードが2つの時は親ノードの中心を軸に左右対称に配置
-          x = parentX + (siblingIndex === 0 ? -baseSpacing / 2 : baseSpacing / 2);
+          x = parentX + (siblingIndex === 0 ? -parentLevelSpacing / 2 : parentLevelSpacing / 2);
         } else if (totalSiblings === 3) {
           // 子ノードが3つの時
           if (siblingIndex === 0) {
-            x = parentX - baseSpacing; // 左
+            x = parentX - parentLevelSpacing; // 左
           } else if (siblingIndex === 1) {
             x = parentX; // 中央（親ノードの下）
           } else {
-            x = parentX + baseSpacing; // 右
+            x = parentX + parentLevelSpacing; // 右
           }
         }
       }
@@ -516,6 +566,9 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
 
       nodes.push(reactFlowNode);
 
+      // 現在のノードの階層での間隔を取得
+      const currentLevelSpacing = getLevelSpacing(level);
+
       // 子ノードを処理
       if (node.children && Array.isArray(node.children)) {
         node.children.forEach((child, index) => {
@@ -525,7 +578,7 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
               id: `${node.id}-${child.id}`,
               source: node.id,
               target: child.id,
-              type: 'smoothstep',
+              type: 'straight', // 折れ線から直線に変更
               markerEnd: {
                 type: MarkerType.ArrowClosed,
               },
@@ -536,8 +589,8 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
               zIndex: 1, // エッジを背面に表示
             });
 
-            // 子ノードの位置を再帰的に計算
-            calculatePositions(child, level + 1, x, y, index, node.children.length);
+            // 子ノードの位置を再帰的に計算（現在の階層の間隔を次の階層に渡す）
+            calculatePositions(child, level + 1, x, y, index, node.children.length, currentLevelSpacing);
           }
         });
       }
