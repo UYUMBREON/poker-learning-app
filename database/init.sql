@@ -1,10 +1,11 @@
 -- データベース初期化SQL
 
--- ページテーブル（tree_data列を削除）
+-- ページテーブル（tree_data列を追加）
 CREATE TABLE pages (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     content TEXT,
+    tree_data JSONB, -- 樹形図データを保存するためのJSON列
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -40,6 +41,9 @@ CREATE TRIGGER update_pages_updated_at
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
+-- 樹形図データ用のインデックス（パフォーマンス向上のため）
+CREATE INDEX idx_pages_tree_data ON pages USING gin (tree_data);
+
 -- サンプルデータ
 INSERT INTO tags (name, color) VALUES 
     ('数学', '#EF4444'),
@@ -49,7 +53,8 @@ INSERT INTO tags (name, color) VALUES
     ('歴史', '#EC4899'),
     ('化学', '#06B6D4');
 
-INSERT INTO pages (title, content) VALUES 
+-- サンプル樹形図データ
+INSERT INTO pages (title, content, tree_data) VALUES 
     ('はじめての学習ページ', 
      'ここに学習内容を記入してください。
 
@@ -74,6 +79,51 @@ INSERT INTO pages (title, content) VALUES
 function example() {
     console.log("Hello, Learning!");
 }
-```');
+```',
+     '{
+       "id": "root",
+       "label": "学習の基礎",
+       "color": "#3B82F6",
+       "size": 60,
+       "children": [
+         {
+           "id": "node_1",
+           "label": "理論",
+           "color": "#10B981",
+           "size": 50,
+           "children": [
+             {
+               "id": "node_1_1",
+               "label": "基本概念",
+               "color": "#EF4444",
+               "size": 40,
+               "children": []
+             },
+             {
+               "id": "node_1_2",
+               "label": "応用理論",
+               "color": "#F59E0B",
+               "size": 40,
+               "children": []
+             }
+           ]
+         },
+         {
+           "id": "node_2",
+           "label": "実践",
+           "color": "#8B5CF6",
+           "size": 50,
+           "children": [
+             {
+               "id": "node_2_1",
+               "label": "演習問題",
+               "color": "#EC4899",
+               "size": 40,
+               "children": []
+             }
+           ]
+         }
+       ]
+     }');
 
 INSERT INTO page_tags (page_id, tag_id) VALUES (1, 1);
