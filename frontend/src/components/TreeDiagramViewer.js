@@ -11,30 +11,29 @@ import ReactFlow, {
 } from 'react-flow-renderer';
 import { GitBranch } from 'lucide-react';
 
-// 読み取り専用カスタムノードコンポーネント
+// 読み取り専用カスタムノードコンポーネント（枠のみ）
 const ReadOnlyCustomNode = ({ id, data, selected }) => {
-  // React Flowの選択状態を使用
   const isSelected = selected || data.isSelected;
 
   return (
     <div
       className="custom-node readonly-node"
       style={{
-        backgroundColor: data.color,
+        backgroundColor: 'white', // 背景は常に白
+        border: `3px solid ${data.color}`, // 枠の色のみ設定
         width: `${data.size}px`,
         height: `${data.size}px`,
-        border: isSelected ? '3px solid #3b82f6' : '2px solid #e2e8f0',
         borderRadius: '50%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: data.color === '#FFFFFF' ? '#000000' : '#FFFFFF',
+        color: data.color, // テキストは枠と同じ色
         fontWeight: 'bold',
         fontSize: `${Math.max(10, data.size / 6)}px`,
-        cursor: 'pointer',
+        cursor: 'default',
         position: 'relative',
         boxShadow: isSelected 
-          ? '0 4px 16px rgba(59, 130, 246, 0.4)' 
+          ? `0 4px 16px ${data.color}40` // 選択時は枠色でシャドウ
           : '0 2px 8px rgba(0, 0, 0, 0.15)',
         userSelect: 'none',
         pointerEvents: 'auto',
@@ -42,7 +41,6 @@ const ReadOnlyCustomNode = ({ id, data, selected }) => {
         outline: 'none',
       }}
     >
-      {/* React Flow用のHandleを追加 */}
       <Handle
         type="target"
         position={Position.Top}
@@ -89,6 +87,58 @@ const ReadOnlyCustomNode = ({ id, data, selected }) => {
   );
 };
 
+// 読み取り専用カスタムエッジコンポーネント
+const ReadOnlyCustomEdge = ({ id, sourceX, sourceY, targetX, targetY, style, data }) => {
+  const midX = (sourceX + targetX) / 2;
+  const midY = (sourceY + targetY) / 2;
+
+  return (
+    <>
+      {/* エッジライン */}
+      <path
+        id={id}
+        className="react-flow__edge-path"
+        d={`M${sourceX},${sourceY}L${targetX},${targetY}`}
+        style={{
+          ...style,
+          stroke: data?.color || '#6B7280',
+          strokeWidth: 2,
+        }}
+        markerEnd="url(#react-flow__arrowclosed)"
+      />
+      
+      {/* エッジラベル */}
+      {data?.label && (
+        <foreignObject
+          x={midX - 30}
+          y={midY - 8}
+          width="60"
+          height="16"
+          style={{ overflow: 'visible' }}
+        >
+          <div
+            style={{
+              fontSize: '10px',
+              textAlign: 'center',
+              color: data?.color || '#6B7280',
+              fontWeight: '500',
+              textShadow: '0 0 3px rgba(255, 255, 255, 0.8)',
+              lineHeight: '16px',
+              padding: '0',
+              margin: '0',
+              background: 'transparent',
+              border: 'none',
+              boxShadow: 'none',
+            }}
+          >
+            {data.label}
+          </div>
+        </foreignObject>
+      )}
+    </>
+  );
+};
+
 const TreeDiagramViewer = ({ treeData }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -99,6 +149,11 @@ const TreeDiagramViewer = ({ treeData }) => {
   // ノードタイプの定義
   const nodeTypes = useMemo(() => ({
     readonly: ReadOnlyCustomNode,
+  }), []);
+
+  // エッジタイプの定義
+  const edgeTypes = useMemo(() => ({
+    readonly: ReadOnlyCustomEdge,
   }), []);
 
   // React Flowのノード変更ハンドラー（選択状態のみ処理）
@@ -130,7 +185,7 @@ const TreeDiagramViewer = ({ treeData }) => {
     };
 
     // グリッド対応での位置計算関数
-    const calculatePositions = (node, level = 0, parentX = 0, parentY = 0, childIndex = 0, siblingCount = 1) => {
+    const calculatePositions = (node, level = 0, parentX = 0, parentY = 0, childIndex = 0, siblingCount = 1, parentVisualLevel = 1) => {
       if (!node || !node.id) return;
 
       let x, y;
@@ -140,8 +195,14 @@ const TreeDiagramViewer = ({ treeData }) => {
         x = 0;
         y = 0;
       } else {
-        // 子ノードの位置計算
-        y = level * LEVEL_CONFIG.verticalSpacing;
+        // 現在のノードの視覚的レベル
+        const nodeVisualLevel = node.visualLevel || 1;
+        
+        // 実際の表示レベル = 構造レベル + 視覚的レベル調整
+        const actualLevel = level + (nodeVisualLevel - 1);
+        
+        // Y座標計算
+        y = actualLevel * LEVEL_CONFIG.verticalSpacing;
         
         // グリッド位置の適用
         const gridOffsetX = (node.gridX || 0) * GRID_SIZE;
@@ -208,30 +269,36 @@ const TreeDiagramViewer = ({ treeData }) => {
       if (node.children && Array.isArray(node.children) && node.children.length > 0) {
         node.children.forEach((child, index) => {
           if (child && child.id) {
-            // エッジを作成
+            // エッジを作成（読み取り専用）
             edges.push({
               id: `${node.id}-${child.id}`,
               source: node.id,
               target: child.id,
-              type: 'straight',
-              markerEnd: {
-                type: MarkerType.ArrowClosed,
+              type: 'readonly',
+              data: {
+                label: child.edge?.label || '',
+                color: child.edge?.color || '#6B7280',
               },
               style: {
-                stroke: '#6B7280',
+                stroke: child.edge?.color || '#6B7280',
                 strokeWidth: 2,
               },
               zIndex: 1,
             });
 
+            // 子ノードを実際に一層深いレベルで計算
+            const childStructuralLevel = level + 1;
+            const nodeVisualLevel = node.visualLevel || 1;
+
             // 子ノードの位置を再帰的に計算
             calculatePositions(
               child, 
-              level + 1, 
+              childStructuralLevel, // 構造的レベルを1つ下げる
               x, 
               y, 
               index,
-              node.children.length
+              node.children.length,
+              nodeVisualLevel // 親の視覚的レベルを渡す
             );
           }
         });
@@ -287,6 +354,7 @@ const TreeDiagramViewer = ({ treeData }) => {
           onNodesChange={handleNodesChange}
           onEdgesChange={() => {}}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable={true}
