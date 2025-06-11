@@ -447,7 +447,7 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
     }
   }, [treeData, onTreeDataChange, setNodes]);
 
-  // 樹形図のレイアウト計算（ハンドラー定義後に配置）
+  // 【修正版】樹形図のレイアウト計算 - 下方向配置＋同一階層高さ統一
   const calculateTreeLayout = useCallback((treeData) => {
     if (!treeData || !treeData.id) {
       return { nodes: [], edges: [] };
@@ -455,60 +455,24 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
 
     const nodes = [];
     const edges = [];
-    const levelHeight = 150; // レベル間の垂直距離
-    const baseSpacing = 240; // 基本的な水平間隔（元の120から2倍に変更）
-
-    // 各階層でのノード数と必要な幅を事前計算する関数
-    const calculateLevelInfo = (node, level = 0, levelInfo = {}) => {
-      if (!node || !node.id) return levelInfo;
-
-      // 現在の階層の情報を初期化
-      if (!levelInfo[level]) {
-        levelInfo[level] = {
-          nodesWithMultipleChildren: 0, // 複数子ノードを持つノードの数
-          hasComplexStructure: false    // その階層に複雑な構造があるか
-        };
-      }
-
-      // 子ノードの数を確認
-      const childrenCount = node.children ? node.children.length : 0;
-      
-      // この階層で複数の子ノードを持つ場合
-      if (childrenCount >= 2) {
-        levelInfo[level].nodesWithMultipleChildren++;
-        levelInfo[level].hasComplexStructure = true;
-      }
-
-      // 子ノードを再帰的に処理
-      if (node.children && Array.isArray(node.children)) {
-        node.children.forEach(child => {
-          calculateLevelInfo(child, level + 1, levelInfo);
-        });
-      }
-
-      return levelInfo;
+    
+    // 【修正】レベルごとの設定
+    const LEVEL_CONFIG = {
+      verticalSpacing: 315,     // 垂直間隔（225 × 1.4）
+      baseAngle: 180,           // 初期最大角度（180度）
+      angleReductionRate: 0.5,  // 各レベルでの角度縮小率（0.65→0.5でより早く狭まる）
+      minAngle: 45,             // 最小角度（45度）
+      baseRadius: 378,          // 初期半径（270 × 1.4）
+      radiusGrowthRate: 1.2,    // 半径増加率
+      edgeReductionRate: 0.9,   // エッジ長短縮率
+      minEdgeRatio: 1/3         // 最小エッジ長比率（初期の1/3）
     };
 
-    // 階層情報を計算
-    const levelInfo = calculateLevelInfo(treeData);
+    // 【修正】下方向配置＋同一階層高さ統一での位置計算関数
+    const calculatePositions = (node, level = 0, parentX = 0, parentY = 0, 
+                               parentAngle = 90, maxAngle = LEVEL_CONFIG.baseAngle) => {
+      if (!node || !node.id) return;
 
-    // 各階層の間隔を動的に計算
-    const getLevelSpacing = (level) => {
-      // 該当する階層に複雑な構造（複数子ノードを持つノード）があるかチェック
-      if (levelInfo[level] && levelInfo[level].hasComplexStructure) {
-        return baseSpacing * 2;
-      }
-      
-      return baseSpacing;
-    };
-
-    // ノードの位置を計算するための再帰関数
-    const calculatePositions = (node, level = 0, parentX = 0, parentY = 0, siblingIndex = 0, totalSiblings = 1, parentLevelSpacing = baseSpacing) => {
-      if (!node || !node.id) {
-        return;
-      }
-
-      // 現在のレベルでの位置計算
       let x, y;
       
       if (level === 0) {
@@ -516,32 +480,36 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
         x = 0;
         y = 0;
       } else {
-        // 子ノードの配置パターン
-        y = parentY + levelHeight;
+        // 【修正】同一階層での高さ統一 + 下方向配置 + エッジ長段階短縮
+        // エッジ長の計算（レベルに応じて短縮）
+        const edgeReduction = Math.pow(LEVEL_CONFIG.edgeReductionRate, level - 1);
+        const minReduction = LEVEL_CONFIG.minEdgeRatio;
+        const actualReduction = Math.max(minReduction, edgeReduction);
         
-        if (totalSiblings === 1) {
-          // 子ノードが1つの時は親ノードの下に配置
+        const fixedY = level * LEVEL_CONFIG.verticalSpacing * actualReduction; // エッジ長に応じた固定Y座標
+        
+        // 水平方向の配置は放射角度で計算（エッジ長調整済み）
+        const horizontalRadius = LEVEL_CONFIG.baseRadius * actualReduction * Math.pow(LEVEL_CONFIG.radiusGrowthRate, level - 1);
+        
+        // 角度から水平位置を計算（下方向なので角度の意味を調整）
+        if (parentAngle === 90) {
+          // 真下の場合
           x = parentX;
-        } else if (totalSiblings === 2) {
-          // 子ノードが2つの時は親ノードの中心を軸に左右対称に配置
-          x = parentX + (siblingIndex === 0 ? -parentLevelSpacing / 2 : parentLevelSpacing / 2);
-        } else if (totalSiblings === 3) {
-          // 子ノードが3つの時
-          if (siblingIndex === 0) {
-            x = parentX - parentLevelSpacing; // 左
-          } else if (siblingIndex === 1) {
-            x = parentX; // 中央（親ノードの下）
-          } else {
-            x = parentX + parentLevelSpacing; // 右
-          }
+        } else {
+          // 角度に基づく水平オフセット
+          const angleOffset = parentAngle - 90; // 真下からの偏差
+          const radians = (angleOffset * Math.PI) / 180;
+          x = parentX + horizontalRadius * Math.sin(radians);
         }
+        
+        y = fixedY; // 同一階層では固定Y座標
       }
 
-      // ノードサイズの半分を計算（中心点調整用）
-      const nodeSize = node.size || 50;
+      // ノードサイズの調整
+      const nodeSize = Math.max(30, (node.size || 50) - level * 3); // レベルに応じてサイズを縮小
       const halfSize = nodeSize / 2;
 
-      // ノードを作成（位置は中心点から左上角までの調整）
+      // ノードを作成
       const reactFlowNode = {
         id: node.id,
         type: 'custom',
@@ -561,36 +529,66 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
         },
         sourcePosition: Position.Bottom,
         targetPosition: Position.Top,
-        zIndex: 1000, // ノードを最前列に表示
+        zIndex: 1000,
       };
 
       nodes.push(reactFlowNode);
 
-      // 現在のノードの階層での間隔を取得
-      const currentLevelSpacing = getLevelSpacing(level);
+      // 【修正】子ノードの角度計算（下方向配置用）
+      if (node.children && Array.isArray(node.children) && node.children.length > 0) {
+        // 次のレベルでの最大角度を計算（放射角度を狭める）
+        const nextMaxAngle = Math.max(
+          LEVEL_CONFIG.minAngle, 
+          maxAngle * LEVEL_CONFIG.angleReductionRate
+        );
 
-      // 子ノードを処理
-      if (node.children && Array.isArray(node.children)) {
+        const childCount = node.children.length;
+        
+        // 子ノードの角度配列を計算（下方向基準）
+        let childAngles = [];
+        
+        if (childCount === 1) {
+          // 子ノードが1つの場合は真下に配置
+          childAngles = [90]; // 真下 = 90度
+        } else {
+          // 複数の子ノードの場合は下方向を中心とした扇形に配置
+          const totalAngle = nextMaxAngle;
+          const angleStep = totalAngle / (childCount - 1);
+          const startAngle = 90 - totalAngle / 2; // 真下から左右に展開
+          
+          for (let i = 0; i < childCount; i++) {
+            childAngles.push(startAngle + angleStep * i);
+          }
+        }
+
+        // 子ノードを処理
         node.children.forEach((child, index) => {
           if (child && child.id) {
-            // エッジを作成（親ノードの中心から子ノードの中心へ）
+            // エッジを作成
             edges.push({
               id: `${node.id}-${child.id}`,
               source: node.id,
               target: child.id,
-              type: 'straight', // 折れ線から直線に変更
+              type: 'straight',
               markerEnd: {
                 type: MarkerType.ArrowClosed,
               },
               style: {
                 stroke: '#6B7280',
-                strokeWidth: 2,
+                strokeWidth: 2, // 一定の太さに変更（レベル依存を廃止）
               },
-              zIndex: 1, // エッジを背面に表示
+              zIndex: 1,
             });
 
-            // 子ノードの位置を再帰的に計算（現在の階層の間隔を次の階層に渡す）
-            calculatePositions(child, level + 1, x, y, index, node.children.length, currentLevelSpacing);
+            // 子ノードの位置を再帰的に計算
+            calculatePositions(
+              child, 
+              level + 1, 
+              x, 
+              y, 
+              childAngles[index], 
+              nextMaxAngle
+            );
           }
         });
       }
@@ -634,16 +632,21 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          onNodesChange={onNodesChange}
+          onNodesChange={() => {}} // ノード変更を完全に無効化
           onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
+          nodesDraggable={false}        // ノードの移動を無効化
+          nodesConnectable={false}      // ノードの接続を無効化
+          elementsSelectable={true}     // 選択は有効（編集のため）
+          panOnDrag={true}              // パン操作は有効
+          zoomOnScroll={true}           // ズーム操作は有効
           fitView
           fitViewOptions={{
             padding: 0.2,
           }}
           minZoom={0.1}
           maxZoom={2}
-          defaultZoom={0.8}
+          defaultZoom={0.6}
         >
           <Controls position="top-right" />
           <MiniMap 
