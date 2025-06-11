@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Save, Trash2, FileText, Tag, Eye, Edit, ArrowLeft, GitBranch } from 'lucide-react';
 import { usePage, usePages, useTags } from '../hooks/useApi';
 import { usePageForm } from '../hooks/useForm';
+import { useTagSearch } from '../hooks/useSearch';
 import LoadingSpinner from './common/LoadingSpinner';
 import ErrorMessage from './common/ErrorMessage';
 import Button from './common/Button';
@@ -25,6 +26,14 @@ const PageEditor = () => {
   const [saving, setSaving] = useState(false);
 
   const form = usePageForm(page);
+
+  // タグ検索機能を追加
+  const {
+    searchTerm,
+    filteredTags,
+    updateSearchTerm,
+    clearSearch
+  } = useTagSearch(tags);
 
   // ページデータが読み込まれたらフォームを更新（新規ページの場合は実行しない）
   useEffect(() => {
@@ -163,9 +172,13 @@ const PageEditor = () => {
           </div>
 
           <TagsSection 
-            tags={tags}
+            tags={filteredTags}
+            allTags={tags}
+            searchTerm={searchTerm}
             selectedTags={form.values.tags}
             onToggleTag={form.toggleTag}
+            onSearchChange={updateSearchTerm}
+            onClearSearch={clearSearch}
           />
         </div>
       </div>
@@ -275,16 +288,43 @@ const ContentSection = ({ content, onChange, textareaRef, isPreviewMode, onToggl
   );
 };
 
-const TagsSection = ({ tags, selectedTags, onToggleTag }) => (
+const TagsSection = ({ 
+  tags, 
+  allTags,
+  searchTerm,
+  selectedTags, 
+  onToggleTag,
+  onSearchChange,
+  onClearSearch
+}) => (
   <div className="tags-section">
-    <h3 className="section-title">
-      <Tag size={20} />
-      タグ
-    </h3>
+    <div className="tags-section-header">
+      <h3 className="section-title">
+        <Tag size={20} />
+        タグ ({selectedTags.length}個選択中)
+      </h3>
+      {allTags.length > 0 && (
+        <div className="tags-section-info">
+          {searchTerm ? (
+            <span className="search-results-info">
+              {tags.length}件表示 / 全{allTags.length}件
+            </span>
+          ) : (
+            <span className="total-tags-info">
+              全{allTags.length}件のタグ
+            </span>
+          )}
+        </div>
+      )}
+    </div>
     <TagSelector 
       tags={tags}
+      allTags={allTags}
+      searchTerm={searchTerm}
       selectedTags={selectedTags}
       onToggle={onToggleTag}
+      onSearchChange={onSearchChange}
+      onClearSearch={onClearSearch}
     />
   </div>
 );

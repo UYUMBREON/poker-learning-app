@@ -2399,3 +2399,303 @@
   /* 現在はライトモードのみサポート */
   /* 将来的にダークモードを実装する場合はここに追加 */
 }
+
+/* 既存のApp.cssに以下のスタイルを追加 */
+
+/* ノード移動ボタンのスタイル */
+.move-left-btn {
+  background: #3b82f6;
+}
+
+.move-left-btn:hover {
+  background: #2563eb;
+  transform: scale(1.1);
+}
+
+.move-right-btn {
+  background: #3b82f6;
+}
+
+.move-right-btn:hover {
+  background: #2563eb;
+  transform: scale(1.1);
+}
+
+/* ノードコントロールボタンの配置を調整 */
+.node-controls {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  display: flex;
+  gap: 2px;
+  flex-direction: column;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 1001;
+}
+
+.custom-node:hover .node-controls {
+  opacity: 1;
+}
+
+/* ボタンサイズを統一 */
+.node-control-btn {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: white;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  margin-bottom: 1px;
+}
+
+/* 各ボタンの色分け */
+.add-btn {
+  background: #10b981;
+}
+
+.add-btn:hover {
+  background: #059669;
+  transform: scale(1.1);
+}
+
+.delete-btn {
+  background: #ef4444;
+}
+
+.delete-btn:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+
+.settings-btn {
+  background: #6b7280;
+}
+
+.settings-btn:hover {
+  background: #4b5563;
+  transform: scale(1.1);
+}
+
+/* グリッドパターンの調整 */
+.react-flow__background {
+  opacity: 0.4;
+}
+
+/* ノード選択時のスタイル強化 */
+.custom-node {
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.custom-node:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* フォーカス状態の改善 */
+.node-control-btn:focus {
+  outline: 2px solid #ffffff;
+  outline-offset: 1px;
+}
+
+/* アクセシビリティの改善 */
+@media (prefers-reduced-motion: reduce) {
+  .custom-node,
+  .node-control-btn {
+    transition: none;
+    animation: none;
+  }
+  
+  .custom-node:hover {
+    transform: none;
+  }
+  
+  .node-control-btn:hover {
+    transform: none;
+  }
+}
+
+/* モバイルデバイス対応 */
+@media (max-width: 768px) {
+  .node-control-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+  
+  .node-controls {
+    top: -14px;
+    right: -14px;
+    gap: 3px;
+  }
+}
+
+/* タッチデバイス対応 */
+@media (hover: none) and (pointer: coarse) {
+  .node-controls {
+    opacity: 1; /* タッチデバイスでは常に表示 */
+  }
+  
+  .node-control-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+}
+/* =================================
+   タグ検索機能のスタイル
+   ================================= */
+
+/* タグ一覧セクションの検索ヘッダー */
+.tags-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  gap: 20px;
+}
+
+.tags-list-header h3 {
+  font-size: 1.25rem;
+  color: #374151;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.tags-search-container {
+  max-width: 300px;
+  min-width: 200px;
+  flex: 1;
+}
+
+/* 検索結果なしのメッセージ */
+.no-search-results {
+  text-align: center;
+  padding: 60px 20px;
+  color: #64748b;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 2px dashed #cbd5e1;
+}
+
+.no-search-results h4 {
+  margin: 16px 0 8px 0;
+  color: #374151;
+  font-size: 1.125rem;
+}
+
+.no-search-results p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* ページエディターのタグセクションヘッダー */
+.tags-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  gap: 15px;
+}
+
+.tags-section-info {
+  font-size: 0.875rem;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.search-results-info {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.total-tags-info {
+  color: #64748b;
+}
+
+/* タグセレクターの検索機能 */
+.tag-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.tag-selector-search {
+  margin-bottom: 5px;
+}
+
+.tag-options-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tag-options-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.no-tags-found {
+  text-align: center;
+  padding: 20px;
+  color: #64748b;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px dashed #cbd5e1;
+}
+
+.no-tags-found p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.tag-search-info {
+  font-size: 0.875rem;
+  color: #64748b;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+/* =================================
+   レスポンシブ対応の追加
+   ================================= */
+
+@media (max-width: 768px) {
+  /* タグセレクター */
+  .tags-list-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+  
+  .tags-search-container {
+    max-width: 100%;
+    min-width: 100%;
+  }
+  
+  .tags-section-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .tag-options-grid {
+    justify-content: center;
+  }
+  
+  .tag-search-info {
+    font-size: 0.8rem;
+  }
+}

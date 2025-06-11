@@ -2,17 +2,27 @@ import React, { useState } from 'react';
 import { Plus, Trash2, Edit2, Save, X, Tag, Palette } from 'lucide-react';
 import { useTags } from '../hooks/useApi';
 import { useTagForm } from '../hooks/useForm';
+import { useTagSearch } from '../hooks/useSearch';
 import { COLOR_PALETTE } from '../utils/constants';
 import LoadingSpinner from './common/LoadingSpinner';
 import ErrorMessage from './common/ErrorMessage';
 import ColorPalette from './common/ColorPalette';
 import Button from './common/Button';
 import EmptyState from './common/EmptyState';
+import SearchBox from './common/SearchBox';
 
 const TagManager = () => {
   const { tags, loading, error, createTag, updateTag, deleteTag } = useTags();
   const [isCreating, setIsCreating] = useState(false);
   const [editingTagId, setEditingTagId] = useState(null);
+  
+  // タグ検索機能を追加
+  const {
+    searchTerm,
+    filteredTags,
+    updateSearchTerm,
+    clearSearch
+  } = useTagSearch(tags);
 
   if (loading) {
     return <LoadingSpinner message="タグを読み込んでいます..." />;
@@ -34,12 +44,16 @@ const TagManager = () => {
       />
 
       <TagsListSection 
-        tags={tags}
+        tags={filteredTags}
+        searchTerm={searchTerm}
+        totalTagsCount={tags.length}
         editingTagId={editingTagId}
         onStartEdit={setEditingTagId}
         onCancelEdit={() => setEditingTagId(null)}
         onUpdateTag={updateTag}
         onDeleteTag={deleteTag}
+        onSearchChange={updateSearchTerm}
+        onClearSearch={clearSearch}
       />
     </div>
   );
@@ -149,21 +163,44 @@ const CreateTagForm = ({ form, onSubmit, onCancel }) => (
 
 const TagsListSection = ({ 
   tags, 
+  searchTerm,
+  totalTagsCount,
   editingTagId, 
   onStartEdit, 
   onCancelEdit, 
   onUpdateTag, 
-  onDeleteTag 
+  onDeleteTag,
+  onSearchChange,
+  onClearSearch
 }) => (
   <div className="tags-list-section">
-    <h3>既存のタグ ({tags.length}件)</h3>
+    <div className="tags-list-header">
+      <h3>タグ一覧 ({tags.length}件{tags.length !== totalTagsCount ? ` / 全${totalTagsCount}件` : ''})</h3>
+      
+      <div className="tags-search-container">
+        <SearchBox
+          value={searchTerm}
+          onChange={onSearchChange}
+          placeholder="タグ名で検索..."
+          onClear={onClearSearch}
+        />
+      </div>
+    </div>
     
     {tags.length === 0 ? (
-      <EmptyState
-        icon={Tag}
-        title="まだタグが作成されていません"
-        description="最初のタグを作成してみましょう！"
-      />
+      searchTerm ? (
+        <div className="no-search-results">
+          <Tag size={48} style={{ opacity: 0.3, marginBottom: '16px' }} />
+          <h4>「{searchTerm}」に一致するタグが見つかりませんでした</h4>
+          <p>検索条件を変更してお試しください。</p>
+        </div>
+      ) : (
+        <EmptyState
+          icon={Tag}
+          title="まだタグが作成されていません"
+          description="最初のタグを作成してみましょう！"
+        />
+      )
     ) : (
       <div className="tags-grid">
         {tags.map(tag => (
