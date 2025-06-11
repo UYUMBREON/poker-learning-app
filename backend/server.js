@@ -13,7 +13,7 @@ const pool = new Pool({
 
 // ミドルウェア
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // 樹形図データのために制限を増加
 
 // データベース接続テスト
 pool.connect((err, client, release) => {
@@ -74,12 +74,25 @@ app.get('/api/pages/:id', async (req, res) => {
 // ページ作成
 app.post('/api/pages', async (req, res) => {
   try {
-    const { title, content, tags } = req.body;
+    const { title, content, tags, tree_data } = req.body;
+    
+    // 樹形図データの検証とサニタイズ
+    let sanitizedTreeData = null;
+    if (tree_data) {
+      try {
+        // JSONとして解析可能かチェック
+        const parsedTreeData = typeof tree_data === 'string' ? JSON.parse(tree_data) : tree_data;
+        sanitizedTreeData = JSON.stringify(parsedTreeData);
+      } catch (error) {
+        console.error('樹形図データの解析エラー:', error);
+        return res.status(400).json({ error: '無効な樹形図データです' });
+      }
+    }
     
     // ページを作成
     const pageResult = await pool.query(
-      'INSERT INTO pages (title, content) VALUES ($1, $2) RETURNING *',
-      [title, content || '']
+      'INSERT INTO pages (title, content, tree_data) VALUES ($1, $2, $3) RETURNING *',
+      [title, content || '', sanitizedTreeData]
     );
     
     const pageId = pageResult.rows[0].id;
@@ -105,12 +118,25 @@ app.post('/api/pages', async (req, res) => {
 app.put('/api/pages/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, content, tags } = req.body;
+    const { title, content, tags, tree_data } = req.body;
+    
+    // 樹形図データの検証とサニタイズ
+    let sanitizedTreeData = null;
+    if (tree_data) {
+      try {
+        // JSONとして解析可能かチェック
+        const parsedTreeData = typeof tree_data === 'string' ? JSON.parse(tree_data) : tree_data;
+        sanitizedTreeData = JSON.stringify(parsedTreeData);
+      } catch (error) {
+        console.error('樹形図データの解析エラー:', error);
+        return res.status(400).json({ error: '無効な樹形図データです' });
+      }
+    }
     
     // ページを更新
     const result = await pool.query(
-      'UPDATE pages SET title = $1, content = $2 WHERE id = $3 RETURNING *',
-      [title, content, id]
+      'UPDATE pages SET title = $1, content = $2, tree_data = $3 WHERE id = $4 RETURNING *',
+      [title, content, sanitizedTreeData, id]
     );
     
     if (result.rows.length === 0) {
@@ -237,6 +263,63 @@ app.delete('/api/tags/:id', async (req, res) => {
     res.json({ message: 'タグが削除されました', deleted_tag: result.rows[0] });
   } catch (err) {
     console.error('タグ削除エラー:', err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 樹形図データのバリデーション専用エンドポイント
+app.post('/api/validate-tree', async (req, res) => {
+  try {
+    const { tree_data } = req.body;
+    
+    if (!tree_data) {
+      return res.json({ valid: true, message: '樹形図データが空です' });
+    }
+    
+    try {
+      const parsedTreeData = typeof tree_data === 'string' ? JSON.parse(tree_data) : tree_data;
+      
+      // 基本的な構造チェック
+      if (!parsedTreeData.id || !parsedTreeData.label) {
+        return res.status(400).json({ 
+          valid: false, 
+          error: '樹形図データにはidとlabelが必要です' 
+        });
+      }
+      
+      // ノード数の制限チェック（例：最大100ノード）
+      const countNodes = (node) => {
+        let count = 1;
+        if (node.children) {
+          node.children.forEach(child => {
+            count += countNodes(child);
+          });
+        }
+        return count;
+      };
+      
+      const nodeCount = countNodes(parsedTreeData);
+      if (nodeCount > 100) {
+        return res.status(400).json({ 
+          valid: false, 
+          error: 'ノード数が制限を超えています（最大100ノード）' 
+        });
+      }
+      
+      res.json({ 
+        valid: true, 
+        message: '樹形図データは有効です',
+        nodeCount: nodeCount
+      });
+      
+    } catch (parseError) {
+      res.status(400).json({ 
+        valid: false, 
+        error: '樹形図データの形式が無効です' 
+      });
+    }
+  } catch (err) {
+    console.error('樹形図バリデーションエラー:', err);
     res.status(500).json({ error: 'サーバーエラー' });
   }
 });

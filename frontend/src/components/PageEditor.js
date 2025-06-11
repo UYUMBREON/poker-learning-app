@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Save, Trash2, FileText, Tag, Eye, Edit, ArrowLeft } from 'lucide-react';
+import { Save, Trash2, FileText, Tag, Eye, Edit, ArrowLeft, GitBranch } from 'lucide-react';
 import { usePage, usePages, useTags } from '../hooks/useApi';
 import { usePageForm } from '../hooks/useForm';
 import LoadingSpinner from './common/LoadingSpinner';
@@ -8,6 +8,7 @@ import ErrorMessage from './common/ErrorMessage';
 import Button from './common/Button';
 import TagSelector from './TagSelector';
 import MarkdownViewer from './common/MarkdownViewer';
+import TreeDiagramEditor from './TreeDiagramEditor';
 
 const PageEditor = () => {
   const { id } = useParams();
@@ -15,6 +16,7 @@ const PageEditor = () => {
   const isNewPage = !id;
   const contentTextareaRef = useRef(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [treeData, setTreeData] = useState(null);
   
   // 新規ページの場合はAPIを呼ばない
   const { page, loading: pageLoading, error: pageError } = usePage(isNewPage ? null : id);
@@ -30,8 +32,26 @@ const PageEditor = () => {
       form.setValue('title', page.title);
       form.setValue('content', page.content || '');
       form.setValue('tags', page.tags?.map(tag => tag.id) || []);
+      
+      // 樹形図データを復元
+      if (page.tree_data) {
+        try {
+          const parsedTreeData = typeof page.tree_data === 'string' 
+            ? JSON.parse(page.tree_data) 
+            : page.tree_data;
+          setTreeData(parsedTreeData);
+        } catch (error) {
+          console.error('樹形図データの解析に失敗しました:', error);
+          setTreeData(null);
+        }
+      }
     }
   }, [page, isNewPage]);
+
+  // 樹形図データ変更ハンドラー
+  const handleTreeDataChange = (newTreeData) => {
+    setTreeData(newTreeData);
+  };
 
   const handleSave = async () => {
     if (!form.validate()) {
@@ -44,7 +64,8 @@ const PageEditor = () => {
       const pageData = {
         title: form.values.title,
         content: form.values.content,
-        tags: form.values.tags
+        tags: form.values.tags,
+        tree_data: treeData ? JSON.stringify(treeData) : null
       };
 
       if (isNewPage) {
@@ -99,7 +120,7 @@ const PageEditor = () => {
   }
 
   return (
-    <div className="page-editor">
+    <div className="page-editor-with-tree">
       <EditorHeader 
         isNewPage={isNewPage}
         saving={saving}
@@ -108,27 +129,46 @@ const PageEditor = () => {
         onBack={handleBackToView}
       />
 
-      <TitleInput 
-        value={form.values.title}
-        onChange={(value) => form.setValue('title', value)}
-        error={form.touched.title && form.errors.title}
-      />
+      <div className="editor-layout">
+        {/* 左側: 樹形図エディター (1/3) */}
+        <div className="tree-diagram-section">
+          <div className="section-header">
+            <h3 className="section-title">
+              <GitBranch size={20} />
+              樹形図
+            </h3>
+          </div>
+          <TreeDiagramEditor 
+            treeData={treeData}
+            onTreeDataChange={handleTreeDataChange}
+          />
+        </div>
 
-      <div className="editor-sections">
-        <ContentSection 
-          content={form.values.content}
-          onChange={(value) => form.setValue('content', value)}
-          textareaRef={contentTextareaRef}
-          isPreviewMode={isPreviewMode}
-          onTogglePreview={togglePreview}
-        />
+        {/* 右側: コンテンツエディター (2/3) */}
+        <div className="content-editor-section">
+          <TitleInput 
+            value={form.values.title}
+            onChange={(value) => form.setValue('title', value)}
+            error={form.touched.title && form.errors.title}
+          />
+
+          <div className="editor-sections">
+            <ContentSection 
+              content={form.values.content}
+              onChange={(value) => form.setValue('content', value)}
+              textareaRef={contentTextareaRef}
+              isPreviewMode={isPreviewMode}
+              onTogglePreview={togglePreview}
+            />
+          </div>
+
+          <TagsSection 
+            tags={tags}
+            selectedTags={form.values.tags}
+            onToggleTag={form.toggleTag}
+          />
+        </div>
       </div>
-
-      <TagsSection 
-        tags={tags}
-        selectedTags={form.values.tags}
-        onToggleTag={form.toggleTag}
-      />
     </div>
   );
 };
