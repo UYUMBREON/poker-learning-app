@@ -53,7 +53,7 @@ INSERT INTO tags (name, color) VALUES
     ('歴史', '#EC4899'),
     ('化学', '#06B6D4');
 
--- サンプル樹形図データ
+-- サンプル樹形図データ（階層エリア付き）
 INSERT INTO pages (title, content, tree_data) VALUES 
     ('はじめての学習ページ', 
      'ここに学習内容を記入してください。
@@ -122,6 +122,28 @@ function example() {
                "children": []
              }
            ]
+         }
+       ],
+       "layers": [
+         {
+           "id": "layer_foundation",
+           "name": "基礎レベル",
+           "startLevel": 2,
+           "endLevel": 2,
+           "startY": 250,
+           "endY": 450,
+           "color": "#10B981",
+           "opacity": 0.1
+         },
+         {
+           "id": "layer_advanced",
+           "name": "応用レベル",
+           "startLevel": 3,
+           "endLevel": 3,
+           "startY": 450,
+           "endY": 650,
+           "color": "#8B5CF6",
+           "opacity": 0.15
          }
        ]
      }');

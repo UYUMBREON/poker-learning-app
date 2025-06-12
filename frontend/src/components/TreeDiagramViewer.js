@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -142,6 +142,7 @@ const ReadOnlyCustomEdge = ({ id, sourceX, sourceY, targetX, targetY, style, dat
 const TreeDiagramViewer = ({ treeData }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [layers, setLayers] = useState([]);
 
   // グリッドサイズの定数
   const GRID_SIZE = 20;
@@ -182,6 +183,7 @@ const TreeDiagramViewer = ({ treeData }) => {
       verticalSpacing: 200,
       baseRadius: 160,
       radiusGrowthRate: 1.0,
+      rootOffsetY: 150, // ルートノードのY座標オフセット
     };
 
     // グリッド対応での位置計算関数
@@ -191,9 +193,9 @@ const TreeDiagramViewer = ({ treeData }) => {
       let x, y;
       
       if (level === 0) {
-        // ルートノード - グリッドの中心
+        // ルートノード - グリッドの中心上部
         x = 0;
-        y = 0;
+        y = LEVEL_CONFIG.rootOffsetY;
       } else {
         // 現在のノードの視覚的レベル
         const nodeVisualLevel = node.visualLevel || 1;
@@ -201,8 +203,8 @@ const TreeDiagramViewer = ({ treeData }) => {
         // 実際の表示レベル = 構造レベル + 視覚的レベル調整
         const actualLevel = level + (nodeVisualLevel - 1);
         
-        // Y座標計算
-        y = actualLevel * LEVEL_CONFIG.verticalSpacing;
+        // Y座標計算（ルートオフセットを追加）
+        y = LEVEL_CONFIG.rootOffsetY + actualLevel * LEVEL_CONFIG.verticalSpacing;
         
         // グリッド位置の適用
         const gridOffsetX = (node.gridX || 0) * GRID_SIZE;
@@ -321,6 +323,11 @@ const TreeDiagramViewer = ({ treeData }) => {
         const { nodes: newNodes, edges: newEdges } = calculateTreeLayout(treeData);
         setNodes(newNodes);
         setEdges(newEdges);
+        
+        // 階層エリア情報を復元
+        if (treeData.layers) {
+          setLayers(treeData.layers);
+        }
       } catch (error) {
         console.error('Error calculating tree layout:', error);
       }
@@ -328,6 +335,7 @@ const TreeDiagramViewer = ({ treeData }) => {
       // データがない場合は空にする
       setNodes([]);
       setEdges([]);
+      setLayers([]);
     }
   }, [treeData, calculateTreeLayout]);
 
@@ -376,6 +384,72 @@ const TreeDiagramViewer = ({ treeData }) => {
           maxZoom={2}
           defaultZoom={0.8}
         >
+          {/* 階層エリアの描画（読み取り専用・最背面配置） */}
+          {layers.length > 0 && (
+            <svg style={{ 
+              position: 'absolute', 
+              top: 0, 
+              left: 0, 
+              width: '100%', 
+              height: '100%', 
+              pointerEvents: 'none', 
+              zIndex: -1,
+              overflow: 'visible'
+            }}>
+              <g transform="translate(0, 0)">
+                {layers.map(layer => (
+                  <g key={layer.id}>
+                    {/* 背景エリア（グリッド対応） */}
+                    <rect
+                      x="-4000"
+                      y={Math.floor(layer.startY / 20) * 20}
+                      width="8000"
+                      height={Math.ceil((layer.endY - layer.startY) / 20) * 20}
+                      fill={`${layer.color}${Math.round(layer.opacity * 255).toString(16).padStart(2, '0')}`}
+                      stroke="transparent"
+                      strokeWidth="0"
+                    />
+                    
+                    {/* 上境界線（グリッドライン） */}
+                    <line
+                      x1="-4000"
+                      y1={Math.floor(layer.startY / 20) * 20}
+                      x2="4000"
+                      y2={Math.floor(layer.startY / 20) * 20}
+                      stroke={layer.color}
+                      strokeWidth="2"
+                      strokeDasharray="10,5"
+                      opacity="0.6"
+                    />
+                    {/* 下境界線（グリッドライン） */}
+                    <line
+                      x1="-4000"
+                      y1={Math.floor(layer.endY / 20) * 20}
+                      x2="4000"
+                      y2={Math.floor(layer.endY / 20) * 20}
+                      stroke={layer.color}
+                      strokeWidth="2"
+                      strokeDasharray="10,5"
+                      opacity="0.6"
+                    />
+                    
+                    {/* 階層名ラベル（グリッド位置に配置） */}
+                    <text
+                      x={Math.floor(-3900 / 20) * 20}
+                      y={Math.floor(layer.startY / 20) * 20 + 25}
+                      fill={layer.color}
+                      fontSize="16"
+                      fontWeight="bold"
+                      opacity="0.8"
+                    >
+                      {layer.name}
+                    </text>
+                  </g>
+                ))}
+              </g>
+            </svg>
+          )}
+
           <Controls position="top-right" />
           <MiniMap 
             nodeColor="#3B82F6"
