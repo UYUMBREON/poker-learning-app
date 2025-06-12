@@ -3489,6 +3489,637 @@
   z-index: 1000;
 }
 
+/* =================================
+  樹形図階層エリア機能のスタイル
+  ================================= */
+
+/* ツールバー */
+.tree-diagram-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+ }
+ 
+ .toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+ }
+ 
+ .toolbar-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+ }
+ 
+ .layer-btn {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+ }
+ 
+ .layer-btn:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+ }
+ 
+ .layers-info {
+  font-size: 0.75rem;
+  color: #64748b;
+  background: #f8fafc;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+ }
+ 
+ /* 階層設定パネル */
+ .layer-settings-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  min-width: 380px;
+  max-width: 90vw;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  border: 1px solid #e2e8f0;
+  max-height: 80vh;
+  overflow-y: auto;
+ }
+ 
+ .layer-settings-panel .settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e2e8f0;
+ }
+ 
+ .layer-settings-panel .settings-header h4 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.25rem;
+  font-weight: 600;
+ }
+ 
+ .layer-name-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+  margin-top: 8px;
+ }
+ 
+ .layer-name-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+ }
+ 
+ .layer-preview {
+  margin: 20px 0;
+  text-align: center;
+ }
+ 
+ .preview-layer {
+  display: inline-block;
+  min-width: 120px;
+  transition: all 0.2s ease;
+ }
+ 
+ .preview-layer:hover {
+  transform: scale(1.02);
+ }
+ 
+ /* 階層エリアの編集ボタン */
+ .layer-edit-btn {
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+ }
+ 
+ .layer-edit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+ }
+ 
+ /* 階層エリアの SVG 要素（最背面・グリッド対応） */
+.tree-diagram-container svg {
+  pointer-events: none;
+}
+
+.tree-diagram-container svg g {
+  pointer-events: auto;
+}
+
+.tree-diagram-container .react-flow__nodes {
+  z-index: 10;
+}
+
+.tree-diagram-container .react-flow__edges {
+  z-index: 5;
+}
+
+.tree-diagram-container .react-flow__background {
+  z-index: -2;
+}
+
+/* 階層エリアの要素（グリッド絶対座標系） */
+.tree-diagram-container svg rect {
+  transition: all 0.2s ease;
+  vector-effect: non-scaling-stroke;
+  shape-rendering: crispEdges;
+}
+
+.tree-diagram-container svg line {
+  vector-effect: non-scaling-stroke;
+  shape-rendering: crispEdges;
+}
+
+.tree-diagram-container svg text {
+  vector-effect: non-scaling-stroke;
+  dominant-baseline: hanging;
+  text-anchor: start;
+  shape-rendering: crispEdges;
+}
+ 
+ /* 階層エリアの境界線アニメーション */
+ @keyframes dashMove {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 15;
+  }
+ }
+ 
+ .tree-diagram-container svg line {
+  animation: dashMove 1s linear infinite;
+ }
+ 
+ /* 階層名ラベルのスタイル */
+ .tree-diagram-container svg text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.5px;
+ }
+ 
+ /* 設定パネルの削除ボタン */
+ .layer-settings-panel .delete-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+ }
+ 
+ .layer-settings-panel .delete-btn:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+ }
+ 
+ /* 階層レベル選択のスタイル */
+.level-slider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right, #f1f5f9 0%, #e2e8f0 100%);
+  outline: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+
+.level-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.level-slider::-webkit-slider-thumb:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+.level-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.level-slider::-moz-range-thumb:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+/* 階層レベルラベル */
+.level-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding: 0 10px;
+}
+
+.level-label {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+  background: #f1f5f9;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  min-width: 24px;
+  text-align: center;
+}
+
+.level-label.active {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(139, 92, 246, 0.3);
+}
+
+/* 階層プレビュー範囲 */
+.level-preview-range {
+  padding: 12px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  text-align: center;
+  font-weight: 500;
+  color: #374151;
+  margin-top: 8px;
+}
+
+.level-preview-range small {
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: normal;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .level-labels {
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+  }
+  
+  .level-label {
+    font-size: 0.7rem;
+    padding: 3px 6px;
+    min-width: 20px;
+  }
+  
+  .level-preview-range {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+  
+  .level-preview-range small {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .level-labels {
+    gap: 2px;
+  }
+  
+  .level-label {
+    font-size: 0.65rem;
+    padding: 2px 4px;
+    min-width: 18px;
+  }
+}
+
+ /* スライダーのカスタムスタイル */
+ .layer-settings-panel .size-slider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right, #f1f5f9 0%, #e2e8f0 100%);
+  outline: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  margin-top: 8px;
+ }
+ 
+ .layer-settings-panel .size-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+ }
+ 
+ .layer-settings-panel .size-slider::-webkit-slider-thumb:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+ }
+ 
+ .layer-settings-panel .size-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+ }
+ 
+ .layer-settings-panel .size-slider::-moz-range-thumb:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+ }
+ 
+ /* カラーグリッドの改善 */
+ .layer-settings-panel .color-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+  padding: 8px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+ }
+ 
+ .layer-settings-panel .color-option {
+  width: 36px;
+  height: 36px;
+  border: 3px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+ }
+ 
+ .layer-settings-panel .color-option:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+ }
+ 
+ .layer-settings-panel .color-option.selected {
+  border-color: #1e293b;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+ }
+ 
+ .layer-settings-panel .color-option.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+ }
+ 
+ /* アクションボタンの配置調整 */
+ .layer-settings-panel .settings-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+ }
+ 
+ /* レスポンシブ対応 */
+ @media (max-width: 768px) {
+  .tree-diagram-toolbar {
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+  
+  .toolbar-btn {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+  
+  .layers-info {
+    font-size: 0.7rem;
+  }
+  
+  .layer-settings-panel {
+    min-width: 300px;
+    padding: 20px;
+    margin: 10px;
+  }
+  
+  .layer-settings-panel .color-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  
+  .layer-settings-panel .color-option {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .layer-settings-panel .settings-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .update-btn,
+  .cancel-btn,
+  .delete-btn {
+    width: 100%;
+  }
+  
+  /* 階層ラベルのモバイル調整 */
+  .tree-diagram-container svg text {
+    font-size: 12px;
+  }
+ }
+ 
+ @media (max-width: 480px) {
+  .layer-settings-panel {
+    min-width: 280px;
+    padding: 15px;
+  }
+  
+  .layer-settings-panel .settings-header h4 {
+    font-size: 1.1rem;
+  }
+  
+  .layer-name-input {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+  
+  .toolbar-btn {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+  }
+  
+  .layers-info {
+    display: none; /* 極小画面では非表示 */
+  }
+ }
+ 
+ /* ダークモード対応（将来の拡張用） */
+ @media (prefers-color-scheme: dark) {
+  .tree-diagram-toolbar {
+    background: rgba(30, 41, 59, 0.9);
+    border-color: #334155;
+  }
+  
+  .layers-info {
+    background: #1e293b;
+    color: #cbd5e1;
+    border-color: #334155;
+  }
+  
+  .layer-settings-panel {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+  }
+  
+  .layer-name-input {
+    background: #334155;
+    border-color: #475569;
+    color: #f1f5f9;
+  }
+  
+  .layer-name-input:focus {
+    border-color: #3b82f6;
+  }
+ }
+ 
+ /* アクセシビリティ */
+ .toolbar-btn:focus,
+ .layer-name-input:focus,
+ .layer-settings-panel .color-option:focus,
+ .layer-edit-btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+ }
+ 
+ /* アニメーション無効化 */
+ @media (prefers-reduced-motion: reduce) {
+  .toolbar-btn,
+  .preview-layer,
+  .layer-edit-btn,
+  .color-option,
+  .size-slider::-webkit-slider-thumb,
+  .size-slider::-moz-range-thumb {
+    transition: none !important;
+    animation: none !important;
+  }
+  
+  .tree-diagram-container svg line {
+    animation: none !important;
+  }
+  
+  .toolbar-btn:hover,
+  .preview-layer:hover,
+  .layer-edit-btn:hover {
+    transform: none !important;
+  }
+ }
+ 
+ /* 印刷スタイル */
+ @media print {
+  .tree-diagram-toolbar,
+  .layer-edit-btn,
+  .settings-overlay {
+    display: none !important;
+  }
+  
+  .tree-diagram-container svg line {
+    animation: none !important;
+    stroke-dasharray: none !important;
+  }
+ }
+ 
+ /* 高コントラスト対応 */
+ @media (prefers-contrast: high) {
+  .tree-diagram-toolbar {
+    border: 2px solid #000;
+    background: rgba(255, 255, 255, 1);
+  }
+  
+  .toolbar-btn {
+    border: 1px solid #000;
+  }
+  
+  .layer-settings-panel {
+    border: 2px solid #000;
+  }
+  
+  .layer-name-input {
+    border: 2px solid #000;
+  }
+  
+  .tree-diagram-container svg rect {
+    stroke: #000 !important;
+    stroke-width: 2px !important;
+  }
+  
+  .tree-diagram-container svg line {
+    stroke: #000 !important;
+    stroke-width: 3px !important;
+  }
+  
+  .tree-diagram-container svg text {
+    fill: #000 !important;
+    font-weight: bold !important;
+  }
+ }
+ 
 /* カスタムマーカーの定義 */
 .react-flow svg defs marker path {
   fill: inherit;
