@@ -10,7 +10,7 @@ import ReactFlow, {
   MarkerType,
   Handle,
 } from 'react-flow-renderer';
-import { Plus, Trash2, Palette, Settings, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Palette, Settings, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Layers, Edit3 } from 'lucide-react';
 
 // カスタムノードコンポーネント（枠のみ）
 const CustomNode = ({ id, data, selected }) => {
@@ -443,6 +443,421 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, style, data, selec
   );
 };
 
+// 階層エリア設定パネル
+const LayerSettingsPanel = ({ onClose, onCreateLayer, treeData }) => {
+  const [name, setName] = useState('');
+  const [startLevel, setStartLevel] = useState(1);
+  const [endLevel, setEndLevel] = useState(2);
+  const [color, setColor] = useState('#3B82F6');
+  const [opacity, setOpacity] = useState(0.1);
+
+  const colors = [
+    '#3B82F6', '#10B981', '#EF4444', '#F59E0B', '#8B5CF6',
+    '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1',
+    '#14B8A6', '#A855F7', '#6B7280', '#DC2626', '#059669'
+  ];
+
+  // 樹形図の最大階層レベルを計算
+  const getMaxLevel = useCallback((node, level = 1) => {
+    if (!node || !node.children || node.children.length === 0) {
+      return level;
+    }
+    
+    let maxChildLevel = level;
+    node.children.forEach(child => {
+      const childLevel = getMaxLevel(child, level + 1);
+      maxChildLevel = Math.max(maxChildLevel, childLevel);
+    });
+    
+    return maxChildLevel;
+  }, []);
+
+  const maxLevel = treeData ? getMaxLevel(treeData) : 3;
+
+  // 階層レベルをY座標に変換（グリッドベース）
+  const levelToY = useCallback((level) => {
+    const LEVEL_CONFIG = {
+      verticalSpacing: 200,
+      rootOffsetY: 150,
+    };
+    
+    if (level === 1) {
+      // ルートノード中心から5グリッド上
+      return LEVEL_CONFIG.rootOffsetY - (5 * 20);
+    }
+    
+    // 各階層のノード中心Y座標を計算
+    const nodeCenterY = LEVEL_CONFIG.rootOffsetY + (level - 1) * LEVEL_CONFIG.verticalSpacing;
+    // ノード中心から5グリッド上
+    return nodeCenterY - (5 * 20);
+  }, []);
+
+  const handleCreate = () => {
+    if (!name.trim()) {
+      alert('階層名を入力してください');
+      return;
+    }
+
+    if (startLevel > endLevel) {
+      alert('開始階層は終了階層以下である必要があります');
+      return;
+    }
+
+    const startY = levelToY(startLevel);
+    const endY = levelToY(endLevel) + (12 * 20); // 終了階層のノード中心から6グリッド下
+
+    const layer = {
+      id: `layer_${Date.now()}`,
+      name: name.trim(),
+      startLevel,
+      endLevel,
+      startY,
+      endY,
+      color,
+      opacity
+    };
+
+    onCreateLayer(layer);
+    onClose();
+  };
+
+  return (
+    <div className="layer-settings-panel">
+      <div className="settings-header">
+        <h4>階層エリアを作成</h4>
+        <button onClick={onClose} className="close-btn">×</button>
+      </div>
+      
+      <div className="setting-group">
+        <label>階層名</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="例: 基礎概念、応用分野"
+          maxLength={20}
+          className="layer-name-input"
+        />
+      </div>
+
+      <div className="setting-group">
+        <label>開始階層: レベル {startLevel}</label>
+        <input
+          type="range"
+          min="1"
+          max={maxLevel}
+          step="1"
+          value={startLevel}
+          onChange={(e) => setStartLevel(parseInt(e.target.value))}
+          className="level-slider"
+        />
+        <div className="level-labels">
+          {Array.from({ length: maxLevel }, (_, i) => (
+            <span key={i + 1} className={`level-label ${startLevel === i + 1 ? 'active' : ''}`}>
+              {i + 1}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="setting-group">
+        <label>終了階層: レベル {endLevel}</label>
+        <input
+          type="range"
+          min={startLevel}
+          max={maxLevel}
+          step="1"
+          value={endLevel}
+          onChange={(e) => setEndLevel(parseInt(e.target.value))}
+          className="level-slider"
+        />
+        <div className="level-labels">
+          {Array.from({ length: maxLevel }, (_, i) => (
+            <span key={i + 1} className={`level-label ${endLevel === i + 1 ? 'active' : ''}`}>
+              {i + 1}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="setting-group">
+        <label>プレビュー範囲</label>
+        <div className="level-preview-range">
+          階層 {startLevel} ～ 階層 {endLevel} を対象
+          <br />
+          <small>開始: 階層{startLevel}中心から5グリッド上 (Y: {Math.round(levelToY(startLevel))}px)</small>
+          <br />
+          <small>終了: 階層{endLevel}中心から6グリッド下 (Y: {Math.round(levelToY(endLevel) + (12 * 20))}px)</small>
+        </div>
+      </div>
+
+      <div className="setting-group">
+        <label>背景色</label>
+        <div className="color-grid">
+          {colors.map(c => (
+            <button
+              key={c}
+              onClick={() => setColor(c)}
+              className={`color-option ${color === c ? 'selected' : ''}`}
+              style={{ backgroundColor: c }}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="setting-group">
+        <label>透明度: {Math.round(opacity * 100)}%</label>
+        <input
+          type="range"
+          min="0.05"
+          max="0.3"
+          step="0.05"
+          value={opacity}
+          onChange={(e) => setOpacity(parseFloat(e.target.value))}
+          className="size-slider"
+        />
+      </div>
+
+      <div className="layer-preview">
+        <div 
+          className="preview-layer"
+          style={{ 
+            backgroundColor: `${color}${Math.round(opacity * 255).toString(16).padStart(2, '0')}`,
+            border: `2px solid ${color}`,
+            padding: '8px 12px',
+            borderRadius: '4px',
+            textAlign: 'center',
+            color: color,
+            fontWeight: 'bold'
+          }}
+        >
+          {name || 'プレビュー'}
+        </div>
+      </div>
+
+      <div className="settings-actions">
+        <button onClick={handleCreate} className="update-btn">
+          階層を作成
+        </button>
+        <button onClick={onClose} className="cancel-btn">
+          キャンセル
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// 階層エリア編集パネル
+const LayerEditPanel = ({ layer, onUpdate, onDelete, onClose, treeData }) => {
+  const [name, setName] = useState(layer.name);
+  const [startLevel, setStartLevel] = useState(layer.startLevel || 1);
+  const [endLevel, setEndLevel] = useState(layer.endLevel || 2);
+  const [color, setColor] = useState(layer.color);
+  const [opacity, setOpacity] = useState(layer.opacity);
+
+  const colors = [
+    '#3B82F6', '#10B981', '#EF4444', '#F59E0B', '#8B5CF6',
+    '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1',
+    '#14B8A6', '#A855F7', '#6B7280', '#DC2626', '#059669'
+  ];
+
+  // 樹形図の最大階層レベルを計算
+  const getMaxLevel = useCallback((node, level = 1) => {
+    if (!node || !node.children || node.children.length === 0) {
+      return level;
+    }
+    
+    let maxChildLevel = level;
+    node.children.forEach(child => {
+      const childLevel = getMaxLevel(child, level + 1);
+      maxChildLevel = Math.max(maxChildLevel, childLevel);
+    });
+    
+    return maxChildLevel;
+  }, []);
+
+  const maxLevel = treeData ? getMaxLevel(treeData) : 3;
+
+  // 階層レベルをY座標に変換（グリッドベース）
+  const levelToY = useCallback((level) => {
+    const LEVEL_CONFIG = {
+      verticalSpacing: 200,
+      rootOffsetY: 150,
+    };
+    
+    if (level === 1) {
+      // ルートノード中心から5グリッド上
+      return LEVEL_CONFIG.rootOffsetY - (5 * 20);
+    }
+    
+    // 各階層のノード中心Y座標を計算
+    const nodeCenterY = LEVEL_CONFIG.rootOffsetY + (level - 1) * LEVEL_CONFIG.verticalSpacing;
+    // ノード中心から5グリッド上
+    return nodeCenterY - (5 * 20);
+  }, []);
+
+  const handleUpdate = () => {
+    if (!name.trim()) {
+      alert('階層名を入力してください');
+      return;
+    }
+
+    if (startLevel > endLevel) {
+      alert('開始階層は終了階層以下である必要があります');
+      return;
+    }
+
+    const startY = levelToY(startLevel);
+    const endY = levelToY(endLevel) + (12 * 20); // 終了階層のノード中心から6グリッド下
+
+    onUpdate({
+      ...layer,
+      name: name.trim(),
+      startLevel,
+      endLevel,
+      startY,
+      endY,
+      color,
+      opacity
+    });
+    onClose();
+  };
+
+  const handleDelete = () => {
+    if (window.confirm(`階層「${layer.name}」を削除しますか？`)) {
+      onDelete(layer.id);
+      onClose();
+    }
+  };
+
+  return (
+    <div className="layer-settings-panel">
+      <div className="settings-header">
+        <h4>階層エリアを編集</h4>
+        <button onClick={onClose} className="close-btn">×</button>
+      </div>
+      
+      <div className="setting-group">
+        <label>階層名</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={20}
+          className="layer-name-input"
+        />
+      </div>
+
+      <div className="setting-group">
+        <label>開始階層: レベル {startLevel}</label>
+        <input
+          type="range"
+          min="1"
+          max={maxLevel}
+          step="1"
+          value={startLevel}
+          onChange={(e) => setStartLevel(parseInt(e.target.value))}
+          className="level-slider"
+        />
+        <div className="level-labels">
+          {Array.from({ length: maxLevel }, (_, i) => (
+            <span key={i + 1} className={`level-label ${startLevel === i + 1 ? 'active' : ''}`}>
+              {i + 1}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="setting-group">
+        <label>終了階層: レベル {endLevel}</label>
+        <input
+          type="range"
+          min={startLevel}
+          max={maxLevel}
+          step="1"
+          value={endLevel}
+          onChange={(e) => setEndLevel(parseInt(e.target.value))}
+          className="level-slider"
+        />
+        <div className="level-labels">
+          {Array.from({ length: maxLevel }, (_, i) => (
+            <span key={i + 1} className={`level-label ${endLevel === i + 1 ? 'active' : ''}`}>
+              {i + 1}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="setting-group">
+        <label>プレビュー範囲</label>
+        <div className="level-preview-range">
+          階層 {startLevel} ～ 階層 {endLevel} を対象
+          <br />
+          <small>開始: 階層{startLevel}中心から5グリッド上 (Y: {Math.round(levelToY(startLevel))}px)</small>
+          <br />
+          <small>終了: 階層{endLevel}中心から6グリッド下 (Y: {Math.round(levelToY(endLevel) + (12 * 20))}px)</small>
+        </div>
+      </div>
+
+      <div className="setting-group">
+        <label>背景色</label>
+        <div className="color-grid">
+          {colors.map(c => (
+            <button
+              key={c}
+              onClick={() => setColor(c)}
+              className={`color-option ${color === c ? 'selected' : ''}`}
+              style={{ backgroundColor: c }}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="setting-group">
+        <label>透明度: {Math.round(opacity * 100)}%</label>
+        <input
+          type="range"
+          min="0.05"
+          max="0.3"
+          step="0.05"
+          value={opacity}
+          onChange={(e) => setOpacity(parseFloat(e.target.value))}
+          className="size-slider"
+        />
+      </div>
+
+      <div className="layer-preview">
+        <div 
+          className="preview-layer"
+          style={{ 
+            backgroundColor: `${color}${Math.round(opacity * 255).toString(16).padStart(2, '0')}`,
+            border: `2px solid ${color}`,
+            padding: '8px 12px',
+            borderRadius: '4px',
+            textAlign: 'center',
+            color: color,
+            fontWeight: 'bold'
+          }}
+        >
+          {name || 'プレビュー'}
+        </div>
+      </div>
+
+      <div className="settings-actions">
+        <button onClick={handleUpdate} className="update-btn">
+          更新
+        </button>
+        <button onClick={handleDelete} className="delete-btn">
+          削除
+        </button>
+        <button onClick={onClose} className="cancel-btn">
+          キャンセル
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // エッジ設定パネル
 const EdgeSettingsPanel = ({ edgeData, onUpdate, onClose }) => {
   const [label, setLabel] = useState(edgeData.label || '');
@@ -576,8 +991,11 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [showNodeSettings, setShowNodeSettings] = useState(false);
   const [showEdgeSettings, setShowEdgeSettings] = useState(false);
+  const [showLayerSettings, setShowLayerSettings] = useState(false);
   const [settingsNodeData, setSettingsNodeData] = useState(null);
   const [settingsEdgeData, setSettingsEdgeData] = useState(null);
+  const [layers, setLayers] = useState([]);
+  const [selectedLayerId, setSelectedLayerId] = useState(null);
 
   const GRID_SIZE = 20;
 
@@ -633,10 +1051,35 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
     }
   }, [onEdgesChange, selectedEdgeId]);
 
+  // 階層エリア管理のハンドラー
+  const handleCreateLayer = useCallback((layer) => {
+    setLayers(prev => [...prev, layer]);
+  }, []);
+
+  const handleUpdateLayer = useCallback((updatedLayer) => {
+    setLayers(prev => prev.map(layer => 
+      layer.id === updatedLayer.id ? updatedLayer : layer
+    ));
+  }, []);
+
+  const handleDeleteLayer = useCallback((layerId) => {
+    setLayers(prev => prev.filter(layer => layer.id !== layerId));
+    if (selectedLayerId === layerId) {
+      setSelectedLayerId(null);
+    }
+  }, [selectedLayerId]);
+
+  const handleLayerClick = useCallback((layerId) => {
+    setSelectedLayerId(layerId);
+    setSelectedNodeId(null);
+    setSelectedEdgeId(null);
+  }, []);
+  
   // 空白クリックで選択解除
   const handlePaneClick = useCallback(() => {
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
+    setSelectedLayerId(null);
   }, []);
 
   // エッジダブルクリックハンドラー
@@ -743,6 +1186,7 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
       console.error('Error promoting node:', error);
     }
   }, [treeData, onTreeDataChange]);
+
   const handleEdgeLabelChange = useCallback((edgeId, newLabel) => {
     if (!treeData) return;
 
@@ -1029,6 +1473,7 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
       verticalSpacing: 200,
       baseRadius: 160,
       radiusGrowthRate: 1.0,
+      rootOffsetY: 150, // ルートノードのY座標オフセット
     };
 
     const calculatePositions = (node, level = 0, parentX = 0, parentY = 0, childIndex = 0, siblingCount = 1) => {
@@ -1038,11 +1483,11 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
       
       if (level === 0) {
         x = 0;
-        y = 0;
+        y = LEVEL_CONFIG.rootOffsetY; // ルートノードを上部に配置
       } else {
         // 視覚的レベルを考慮した Y 座標計算
         const visualLevel = node.visualLevel || 1;
-        const baseY = level * LEVEL_CONFIG.verticalSpacing;
+        const baseY = LEVEL_CONFIG.rootOffsetY + level * LEVEL_CONFIG.verticalSpacing; // ルートオフセットを加算
         const additionalSpacing = (visualLevel - 1) * LEVEL_CONFIG.verticalSpacing;
         y = baseY + additionalSpacing;
         
@@ -1162,6 +1607,11 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
         const { nodes: newNodes, edges: newEdges } = calculateTreeLayout(treeData);
         setNodes(newNodes);
         setEdges(newEdges);
+        
+        // 階層エリア情報を復元
+        if (treeData.layers) {
+          setLayers(treeData.layers);
+        }
       } catch (error) {
         console.error('Error calculating tree layout:', error);
       }
@@ -1172,14 +1622,43 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
         color: '#3B82F6',
         size: 60,
         gridX: 0,
-        children: []
+        children: [],
+        layers: []
       };
       onTreeDataChange(initialTreeData);
     }
   }, [treeData, onTreeDataChange, calculateTreeLayout]);
+  
+  // 階層エリアが変更されたときにツリーデータを更新
+  React.useEffect(() => {
+    if (treeData && layers.length !== (treeData.layers?.length || 0)) {
+      const updatedTreeData = {
+        ...treeData,
+        layers: layers
+      };
+      onTreeDataChange(updatedTreeData);
+    }
+  }, [layers, treeData, onTreeDataChange]);
 
   return (
     <div className="tree-diagram-editor">
+      <div className="tree-diagram-toolbar">
+        <button
+          onClick={() => setShowLayerSettings(true)}
+          className="toolbar-btn layer-btn"
+          title="階層エリアを追加"
+        >
+          <Layers size={16} />
+          階層追加
+        </button>
+        
+        {layers.length > 0 && (
+          <div className="layers-info">
+            {layers.length}個の階層エリア
+          </div>
+        )}
+      </div>
+
       <div className="tree-diagram-container">
         <ReactFlow
           nodes={nodes}
@@ -1211,6 +1690,123 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
           maxZoom={2}
           defaultZoom={0.8}
         >
+          {/* 階層エリアの描画（最背面に配置） */}
+          <svg style={{ 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            width: '100%', 
+            height: '100%', 
+            pointerEvents: 'none', 
+            zIndex: -1,
+            overflow: 'visible'
+          }}>
+            <defs>
+              {layers.map(layer => (
+                <pattern
+                  key={layer.id}
+                  id={`pattern-${layer.id}`}
+                  patternUnits="userSpaceOnUse"
+                  width="20"
+                  height="20"
+                >
+                  <rect width="20" height="20" fill={`${layer.color}${Math.round(layer.opacity * 255).toString(16).padStart(2, '0')}`} />
+                </pattern>
+              ))}
+            </defs>
+            <g transform="translate(0, 0)">
+              {layers.map(layer => (
+                <g key={layer.id}>
+                  {/* 背景エリア（グリッド対応） */}
+                  <rect
+                    x="-4000"
+                    y={Math.floor(layer.startY / 20) * 20}
+                    width="8000"
+                    height={Math.ceil((layer.endY - layer.startY) / 20) * 20}
+                    fill={`${layer.color}${Math.round(layer.opacity * 255).toString(16).padStart(2, '0')}`}
+                    stroke={selectedLayerId === layer.id ? layer.color : 'transparent'}
+                    strokeWidth={selectedLayerId === layer.id ? 2 : 0}
+                    style={{ 
+                      pointerEvents: 'auto', 
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onClick={() => handleLayerClick(layer.id)}
+                  />
+                  
+                  {/* 上境界線（グリッドライン） */}
+                  <line
+                    x1="-4000"
+                    y1={Math.floor(layer.startY / 20) * 20}
+                    x2="4000"
+                    y2={Math.floor(layer.startY / 20) * 20}
+                    stroke={layer.color}
+                    strokeWidth="2"
+                    strokeDasharray="10,5"
+                    opacity="0.8"
+                  />
+                  {/* 下境界線（グリッドライン） */}
+                  <line
+                    x1="-4000"
+                    y1={Math.floor(layer.endY / 20) * 20}
+                    x2="4000"
+                    y2={Math.floor(layer.endY / 20) * 20}
+                    stroke={layer.color}
+                    strokeWidth="2"
+                    strokeDasharray="10,5"
+                    opacity="0.8"
+                  />
+                  
+                  {/* 階層名ラベル（グリッド位置に配置） */}
+                  <text
+                    x={Math.floor(-3900 / 20) * 20}
+                    y={Math.floor(layer.startY / 20) * 20 + 25}
+                    fill={layer.color}
+                    fontSize="16"
+                    fontWeight="bold"
+                    style={{ pointerEvents: 'none' }}
+                  >
+                    {layer.name}
+                  </text>
+                  
+                  {/* 編集ボタン（グリッド位置に配置） */}
+                  {selectedLayerId === layer.id && (
+                    <foreignObject
+                      x={Math.floor(-3800 / 20) * 20}
+                      y={Math.floor(layer.startY / 20) * 20 + 35}
+                      width="80"
+                      height="40"
+                    >
+                      <button
+                        onClick={() => {
+                          setShowLayerSettings(true);
+                          setSelectedLayerId(layer.id);
+                        }}
+                        className="layer-edit-btn"
+                        style={{
+                          background: layer.color,
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                        }}
+                      >
+                        <Edit3 size={14} />
+                        編集
+                      </button>
+                    </foreignObject>
+                  )}
+                </g>
+              ))}
+            </g>
+          </svg>
+
           <Controls position="top-right" />
           <MiniMap 
             nodeColor="#3B82F6"
@@ -1228,6 +1824,30 @@ const TreeDiagramEditor = ({ treeData, onTreeDataChange }) => {
           />
         </ReactFlow>
       </div>
+
+      {/* 階層エリア設定パネル */}
+      {showLayerSettings && (
+        <div className="settings-overlay">
+          {selectedLayerId ? (
+            <LayerEditPanel
+              layer={layers.find(l => l.id === selectedLayerId)}
+              onUpdate={handleUpdateLayer}
+              onDelete={handleDeleteLayer}
+              onClose={() => {
+                setShowLayerSettings(false);
+                setSelectedLayerId(null);
+              }}
+              treeData={treeData}
+            />
+          ) : (
+            <LayerSettingsPanel
+              onCreateLayer={handleCreateLayer}
+              onClose={() => setShowLayerSettings(false)}
+              treeData={treeData}
+            />
+          )}
+        </div>
+      )}
 
       {/* ノード設定パネル */}
       {showNodeSettings && settingsNodeData && (
